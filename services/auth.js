@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const otpGenerator = require('otp-generator')
 const dbService = require("../utils/dbServices");
 const emailService = require("./email");
+const bcrypt = require("bcrypt");
 
 
 
