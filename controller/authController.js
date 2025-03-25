@@ -4,112 +4,84 @@ const jwt = require('jsonwebtoken');
 const { verifyToken } = require('../firebase/auth');
 const authService = require('../services/auth');
 const authConstant = require('../constants/authConstant');
+const userSchemaKey = require('../utils/validation/userValidation');
+const validation = require('../utils/validateRequest')
+const dbService = require('../utils/dbServices');
 const dayjs = require('dayjs');
 
 
 
-const register = async(req,res)=>{
+const register = async (req,res) =>{
     try {
-        let {phone,email,username} = req.body;
-        if((!email && !phone) || !username){
-            return res.badRequest({message : "Insufficient request parameters! email (or phone) and username are required"})
-        }
-        const data = new User({
-            ...req.body,
-            userType: authConstant.USER_TYPES.User
-        })
+      let {
+        phone,email, password
+      } = req.body;
+      if (!email && !phone) {
+        return res.badRequest({ message: 'Insufficient request parameters! email or phone  is required.' });
+      }
+     
+      // validation  
+      let validateRequest = validation.validateParamsWithJoi(
+        req.body,
+        userSchemaKey.schemaKeys
+      );
+      if (!validateRequest.isValid) {
+        return res.validationError({ message :  `Invalid values in parameters, ${validateRequest.message}` });
+      } 
 
-        if(req.body.email){
-            let found = await User.findOne({email:email});
-            if(found){
-                return res.validationError({message : `${email} already exists.Unique email are allowed.`})
-            }
+      if(req.body.email){
+        let found = await User.findOne({email:email});
+        if(found){
+            return res.validationError({message : `${email} already exists.Unique email are allowed.`})
         }
-        if(req.body.phone){
-            let found = await User.findOne({phone:phone});
-            if(found){
-                return res.validationError({message : `${phone} already exists.Unique phone are allowed.`})
-            }
-        }
-        if(req.body.username){
-            if (!/^[a-zA-Z0-9_]+$/.test(req.body.username)) {
-                return res.validationError({ message: "username must contain only alphanumeric characters and underscores" });
-            }
-            let found = await User.findOne({username:username});
-            if(found){
-                return res.validationError({message : `${username} already exists.Unique username are allowed.`})
-            }
-        }
-
-        const result = await User.create(data);
-
-        return res.success({data:result})
-    } catch (error) {
-        return res.internalServerError({data:error.message})
     }
-}
+    if(req.body.phone){
+        let found = await User.findOne({phone:phone});
+        if(found){
+            return res.validationError({message : `${phone} already exists.Unique phone are allowed.`})
+        }
+    }
+     
+      const data = new User({
+        ...req.body,
+        userType: authConstant.USER_TYPES.User
+      });
+     
+    // create user
+      const result = await dbService.create(User,data);
 
-const login = async(req,res)=>{
+      return res.success({ data :result });
+    } catch (error) {
+      return res.internalServerError({ data:error.message });
+    }  
+  };
+
+const login = async (req, res) => {
     try {
-        let {username,password} = req.body;
+      let {
+        username, password, phone
+      } = req.body;
+     
+      if (!(username || phone)) {
+        return res.badRequest({ message: 'Insufficient request parameters! username  is required.' });
+      }
+      if (!password) {
+        return res.badRequest({ message: 'Insufficient request parameters! password is required.' });
+      }
 
-        if(!username){
-            return res.badRequest({message : "Insufficient request parameters! email or phone is required"})
-        }
-        if(!password){
-            return res.badRequest({message : "Insufficient request parameters! password is required"})
-        }
-
-        // let check;
-
-        // if(Number(username)){
-        //     check = {phone:username}
-        // }
-        // else{
-        //     check = {email:username}
-        // }
-        let result = await authService.loginUser(username, password, authConstant.PLATFORM.USERAPP);
+      let roleAccess = false;
+      let result = await authService.loginUser(username  , password, authConstant.PLATFORM.USERAPP, roleAccess);
       if (result.flag) {
         return res.badRequest({ message: result.data });
       }
-        // let user = await User.findOne(check)
-
-        // if(!user){
-        //     return res.recordNotFound({message:"User doesn't exists"})
-        // }
-
-        // if(password){
-        //     let checkPassword = user.isPasswordMatch(password);
-        //     if(!checkPassword){
-        //         return res.badRequest({message:"Incorrect Password"})
-        //     }
-        // }
-
-        // let userData = user.toJSON();
-
-        // let token =  jwt.sign({id:userData.id,email:userData.email},process.env.JWT_SCERET,{expiresIn:10000*60})
-
-        // let result = {...userData,token}
-
-        let expireTime = dayjs(result.data.token.expireTime);
-
-// Get the current time
-let now = dayjs();
-
-// Calculate the difference in milliseconds
-let differenceInMilliseconds = expireTime.diff(now);
-
-        res.cookie('token',result.data.token.value, { httpOnly: false, secure: process.env.NODE_ENV === 'production', maxAge:  differenceInMilliseconds})
-        res.json({ redirectUrl: process.env.FRONTEND_URL });
-        
-        // return res.success({
-        //     data: result.data,
-        //     message: 'Login Successful'
-        //   });
+      return res.success({
+        data: result.data,
+        message: 'Login Successful'
+      });
     } catch (error) {
-        return res.internalServerError({data:error.message})
+      return res.internalServerError({ data: error.message });
     }
-}
+  };
 
 const googleLogin  = async(req,res)=>{
     try {
@@ -141,4 +113,99 @@ const googleLogin  = async(req,res)=>{
     }
 }
 
-module.exports = {register,login,googleLogin};
+
+const sentResetPasswordOtp = async (req, res) => {
+    const params = req.body;
+    try {
+      if (!params.email && !params.phone) {
+        return res.badRequest({ message: 'Insufficient request parameters! email or phone is required.' });
+      }
+      let where;
+      if(params.email){
+       where = { email: params.email };
+      where.isActive = true; where.isDeleted = false; params.email = params.email.toString().toLowerCase();
+      }
+      if(params.phone){
+         where = { phone: params.phone};
+        where.isActive = true; where.isDeleted = false; 
+        }
+  
+      let found = await dbService.findOne(User, where);
+      if (!found) {
+        return res.recordNotFound();
+      }
+      let {
+        resultOfEmail, resultOfSMS
+      } = await authService.sendResetPasswordOtpNotification(found);
+      if (resultOfEmail && resultOfSMS) {
+        return res.success({ message: 'otp successfully send.' });
+      } else if (resultOfEmail && !resultOfSMS) {
+        return res.success({ message: 'otp successfully send to your email.' });
+      } else if (!resultOfEmail && resultOfSMS) {
+        return res.success({ message: 'otp successfully send to your mobile number.' });
+      } else {
+        return res.failure({ message: 'otp can not be sent due to some issue try again later' });
+      }
+    } catch (error) {
+      return res.internalServerError({ data: error.message });
+    }
+  };
+
+  const resetPassword = async (req, res) => {
+    const params = req.body;
+    console.log(req.body.code)
+    try {
+      if (!params.code || !params.newPassword) {
+        return res.badRequest({ message: 'Insufficient request parameters! code and newPassword is required.' });
+      }
+      const where = {
+        'resetPasswordLink.code': params.code,
+        isActive: true,
+        isDeleted: false,
+      };
+      let found = await dbService.findOne(User, where);
+      console.log(found,'hello');
+      if (!found || !found.resetPasswordLink.expireTime) {
+        return res.failure({ message: 'Invalid Code' });
+      }
+      if (dayjs(new Date()).isAfter(dayjs(found.resetPasswordLink.expireTime))) {
+        return res.failure({ message: 'Your reset password link is expired or invalid' });
+      }
+      let response = await authService.resetPassword(found, params.newPassword);
+      if (!response || response.flag) {
+        return res.failure({ message: response.data });
+      }
+      return res.success({ message: response.data });
+    } catch (error) {
+      return res.internalServerError({ data: error.message });
+    }
+  };
+
+
+  const validateOtp = async (req, res) => {
+    const params = req.body;
+    try {
+      if (!params.otp) {
+        return res.badRequest({ message: 'Insufficient request parameters! otp is required.' });
+      }
+      const where = {
+        'resetPasswordLink.code': params.otp,
+        isActive: true,
+        isDeleted: false,
+      };
+      let found = await dbService.findOne(User, where);
+      if (!found || !found.resetPasswordLink.expireTime) {
+        return res.failure({ message: 'Invalid OTP' });
+      }
+      if (dayjs(new Date()).isAfter(dayjs(found.resetPasswordLink.expireTime))) {
+        return res.failure({ message: 'Your reset password link is expired or invalid' });
+      }
+     let a = await dbService.updateOne(User, {_id:found.id}, { resetPasswordLink: {} });
+     console.log(a)
+      return res.success({ message: 'OTP verified' });
+    } catch (error) {
+      return res.internalServerError({ data: error.message });
+    }
+  };
+
+module.exports = {register,login,googleLogin,sentResetPasswordOtp,resetPassword,validateOtp};

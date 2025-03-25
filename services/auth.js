@@ -1,8 +1,13 @@
-const { MAX_LOGIN_RETRY_LIMIT, PLATFORM, LOGIN_ACCESS, LOGIN_REACTIVE_TIME } = require("../constants/authConstant");
+const { MAX_LOGIN_RETRY_LIMIT, PLATFORM, LOGIN_ACCESS, LOGIN_REACTIVE_TIME ,FORGOT_PASSWORD_WITH } = require("../constants/authConstant");
 const User = require("../model/user")
 const common = require("../utils/common");
 const dayjs = require("dayjs");
 const jwt = require('jsonwebtoken');
+const otpGenerator = require('otp-generator')
+const dbService = require("../utils/dbServices");
+const emailService = require("./email");
+
+
 
 
 const loginUser = async (username, password, platform) => {
@@ -102,4 +107,92 @@ const loginUser = async (username, password, platform) => {
     }
 };
 
-module.exports = {loginUser }
+const sendResetPasswordOtpNotification = async (user) => {
+    let resultOfEmail = false;
+    try {
+        let where = {
+            _id: user.id,
+            isActive: true, isDeleted: false,
+        }
+       // let token = uuid();
+        let token = otpGenerator.generate(6, { digits:true,lowerCaseAlphabets:false ,upperCaseAlphabets: false, specialChars: false });
+        console.log(token)
+        let expires = dayjs();
+        expires = expires.add(FORGOT_PASSWORD_WITH.EXPIRE_TIME, "minute").toISOString();
+        await dbService.updateOne(User, where,
+            { resetPasswordLink: { code: token, expireTime: expires } });
+        if (user.email) {
+            let viewType = "/reset-password/";
+        
+            let mailObj = {
+                subject: "Nsfashion Reset Password OTP",
+                to: user.email,
+                template: "/views/email/OTP/resetPasswordOtp",
+                data: {
+                    isWidth: true,
+                    user: user || '-',
+                    token:token
+                }
+            };
+            try {
+                await emailService.sendMail(mailObj);
+                resultOfEmail = true;
+            } catch (error) {
+                console.log(error);
+            }
+        }
+      
+        return { resultOfEmail };
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+
+/**
+ * @description : send otp notification for register.
+ * @param {Object} user : user document
+ * @return {}  : returns status where notification is sent or not
+ */
+
+
+
+/**
+ * @description : reset password.
+ * @param {Object} user : user document
+ * @param {string} newPassword : new password to be set.
+ * @return {}  : returns status whether new password is set or not. {flag, data}
+ */
+const resetPassword = async (user, newPassword) => {
+    try {
+        console.log(user,'hello password')
+        let where = {
+            _id: user.id,
+            isActive: true, isDeleted: false,
+        }
+        const dbUser = await dbService.findOne(User, where);
+        if (!dbUser) {
+            return {
+                flag: true,
+                data: "User not found",
+            };
+        }
+        newPassword = await bcrypt.hash(newPassword, 8);
+        await dbService.updateOne(User, where, {
+            "password": newPassword,
+            resetPasswordLink: {},
+            loginRetryLimit: 0
+        });
+
+        console.log('hello reset password')
+     
+        return {
+            flag: false,
+            data: "Password reset successfully",
+        };
+    } catch (error) {
+        throw new Error(error.message)
+    }
+};
+
+module.exports = {loginUser ,sendResetPasswordOtpNotification , resetPassword}

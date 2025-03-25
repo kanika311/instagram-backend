@@ -23,13 +23,14 @@ const myCustomLabels = {
   const schema = new Schema({
     username:{
       type: String,
-      required: true,
+     
     },
     password: {
         type: String,
       },
       name:{type:String},
       Gender:{type:String},
+      dob:{type:String},
       Bio:{type:String},
       followers:[{ref: 'user',
       type: Schema.Types.ObjectId,
