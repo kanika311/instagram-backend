@@ -2,6 +2,7 @@ const User = require("../model/user");
 // const UserSchemaKey = require('../utils/validation/UserValidation');
 // const validation = require('../utils/validateRequest');
 const ObjectId = require('mongodb').ObjectId;
+const dbService = require('../utils/dbServices');
 
 
 // const findAllUser = async (req,res) => {
@@ -38,20 +39,26 @@ const ObjectId = require('mongodb').ObjectId;
 //     }
 //   };
    
-  const me = async (req,res) => {
-      try {
-        let data = req.user;
-
-        if(!data){
-          return res.unauthorized();
-        }
-
-        return res.success({ data :data });
-      }
-      catch (error){
-        return res.internalServerError({ message:error.message });
-      }
+const me = async (req, res) => {
+  try {
+    const query = {
+      _id: req.user.id,
+      isDeleted: false
     };
+
+    console.log('hello user')
+    query.isActive = true;
+    let foundUser = await dbService.findOne(User, query);
+    if (!foundUser) {
+      return res.recordNotFound();
+    }
+
+    console.log(foundUser,'user')
+    return res.success({ data: foundUser });
+  } catch (error) {
+    return res.internalServerError({ message: error.message });
+  }
+};
   const getProfileInfo = async (req,res) => {
       try {
         let query = {};

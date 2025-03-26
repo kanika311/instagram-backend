@@ -1,83 +1,79 @@
-/**
- * auth.js
- * @description :: middleware that checks authentication and authorization of user
- */
-
 const passport = require('passport');
-const { PLATFORM} = require('../constants/authConstant');
+const { LOGIN_ACCESS, PLATFORM } = require('../constants/authConstant');
+const userTokens = require('../model/userTokens');
+const dbService = require('../utils/dbServices');
 
-/**
- * @description : returns callback that verifies required rights and access
- * @param {Object} req : request of route.
- * @param {callback} resolve : resolve callback for succeeding method.
- * @param {callback} reject : reject callback for error.
- * @param {int} platform : platform
- */
 const verifyCallback = (req, resolve, reject, platform) => async (error, user, info) => {
-  if (error || info || !user) {
+  console.log("Auth Headers:", req.headers.authorization); // Debugging
+  console.log("User:", user);
+  console.log("Info:", info);
+  console.log("Error:", error);
+
+  if (error) {
+    console.error("Passport Error:", error);
+    return reject('Authentication error');
+  }
+  if (info) {
+    console.warn("Passport Info:", info);
+    return reject(info.message || 'Unauthorized User');
+  }
+  if (!user) {
     return reject('Unauthorized User');
   }
+
   req.user = user;
-  if (user.isDeleted) {
-    return reject('User is deactivated')
+
+  if (!user.isAppUser || user.isDeleted) {
+    return reject('User is deactivated');
   }
 
-//   let userToken = await dbService.findOne(userTokens, {
-//     token: (req.headers.authorization).replace('Bearer ', ''),
-//     userId: user.id
-//   });
-//   if (!userToken) {
-//     return reject('Token not found');
-//   }
-//   if (userToken.isTokenExpired) {
-//     return reject('Token is Expired');
-//   }
-//   if (user.userType) {
-//     let allowedPlatforms = LOGIN_ACCESS[user.userType] ? LOGIN_ACCESS[user.userType] : [];
-//     console.log(allowedPlatforms);
-//     if (!allowedPlatforms.includes(platform)) {
-//       return reject('Unauthorized user');
-//     }
-//   }
+  let token = req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null;
+  if (!token) {
+    return reject('No token provided');
+  }
+
+  let userToken = await dbService.findOne(userTokens, {
+    token,
+    userId: user.id
+  });
+
+  if (!userToken) {
+    return reject('Token not found');
+  }
+  if (userToken.isTokenExpired) {
+    return reject('Token is Expired');
+  }
+
+  if (user.userType) {
+    let allowedPlatforms = LOGIN_ACCESS[user.userType] || [];
+    if (!allowedPlatforms.includes(platform)) {
+      return reject('Unauthorized user');
+    }
+  }
+
   resolve();
 };
 
-/**
- * @description : authentication middleware for request.
- * @param {Object} req : request of route.
- * @param {Object} res : response of route.
- * @param {callback} next : executes the next middleware succeeding the current middleware.
- * @param {int} platform : platform
- */
 const auth = (platform) => async (req, res, next) => {
-  if (platform == PLATFORM.USERAPP) {
-    return new Promise((resolve, reject) => {
-      passport.authenticate('userapp-rule', { session: false }, verifyCallback(req, resolve, reject, platform))(
-        req,
-        res,
-        next
-      );
-    })
-      .then(() => next())
-      .catch((error) => {
-        console.log("error in middleware auth.js",error);
-        return res.unAuthorized({ message: error.message });
-      });
+  console.log(`Authenticating for platform: ${platform}`);
+
+  let strategy = platform === PLATFORM.USERAPP ? 'userapp-rule' : platform === PLATFORM.ADMIN ? 'admin-rule' : null;
+  if (!strategy) {
+    return res.unAuthorized({ message: 'Invalid platform' });
   }
-  else if (platform == PLATFORM.ADMIN) {
-    return new Promise((resolve, reject) => {
-      passport.authenticate('admin-rule', { session: false }, verifyCallback(req, resolve, reject, platform))(
-        req,
-        res,
-        next
-      );
-    })
-      .then(() => next())
-      .catch((error) => {
-        return res.unAuthorized({ message: error.message });
-      });
-  }
- 
+
+  return new Promise((resolve, reject) => {
+    passport.authenticate(strategy, { session: false }, verifyCallback(req, resolve, reject, platform))(
+      req,
+      res,
+      next
+    );
+  })
+    .then(() => next())
+    .catch((error) => {
+      console.error("Auth Error:", error);
+      return res.unAuthorized({ message: error });
+    });
 };
 
 module.exports = auth;

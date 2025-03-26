@@ -1,28 +1,49 @@
-const { MAX_LOGIN_RETRY_LIMIT, PLATFORM, LOGIN_ACCESS, LOGIN_REACTIVE_TIME ,FORGOT_PASSWORD_WITH } = require("../constants/authConstant");
 const User = require("../model/user")
+const dbService = require("../utils/dbServices");
+const userTokens = require("../model/userTokens");
+const { JWT, LOGIN_ACCESS,PLATFORM, MAX_LOGIN_RETRY_LIMIT,LOGIN_REACTIVE_TIME,FORGOT_PASSWORD_WITH} = require("../constants/authConstant");
+const jwt = require("jsonwebtoken");
 const common = require("../utils/common");
 const dayjs = require("dayjs");
-const jwt = require('jsonwebtoken');
-const otpGenerator = require('otp-generator')
-const dbService = require("../utils/dbServices");
 const emailService = require("./email");
+const ejs = require('ejs');
+const uuid = require("uuid").v4;
 const bcrypt = require("bcrypt");
+const otpGenerator = require('otp-generator')
+
+const generateToken = async (user, secret) => {
+    console.log("user",user,secret)
+    return jwt.sign({ id: user.id, 'email': user.email ,"userType":user.userType}, secret, {
+        expiresIn: JWT.EXPIRES_IN
+    });
+}
+const generateRefreshToken = async (user, secret) => {
+    
+    return jwt.sign({ id: user.id, 'email': user.email ,"userType":user.userType}, secret, {
+        expiresIn: JWT.REFRESH_TOKEN_EXPIRE_IN
+    });
+}
 
 
+/**
+ * @description : login user.
+ * @param {string} username : username of user.
+ * @param {string} password : password of user.
+ * @param {string} platform : platform.
+ * @param {boolean} roleAccess: a flag to request user`s role access
+ * @return {Object} : returns authentication status. {flag, data}
+ */
 
-
-const loginUser = async (username, password, platform) => {
+const loginUser = async (username, password, platform, roleAccess) => {
     try {
         let where;
-        if (/^[a-zA-Z0-9_]+$/.test(username)) {
-            where = {username: username };
-        } else if (Number(username)) {
+        if (Number(username)) {
             where = {phone: username };
         } else {
             where = { email: username };
         } 
         where.isDeleted = false; 
-        let user = await User.findOne(where);
+        let user = await dbService.findOne(User, where);
 
         if (user) {
             if (user.loginRetryLimit >= MAX_LOGIN_RETRY_LIMIT) {
@@ -37,7 +58,7 @@ const loginUser = async (username, password, platform) => {
                                 data: `you have exceed the number of limit.you can login after ${common.getDifferenceOfTwoDatesInTime(now, limitTime)}.`
                             };
                         }
-                        await User.findOneAndUpdate( { _id: user.id }, {
+                        await dbService.updateOne(User, { _id: user.id }, {
                             loginReactiveTime: expireTime.toISOString(),
                             loginRetryLimit: user.loginRetryLimit + 1
                         });
@@ -46,7 +67,7 @@ const loginUser = async (username, password, platform) => {
                             data: `you have exceed the number of limit.you can login after ${common.getDifferenceOfTwoDatesInTime(now, expireTime)}.`
                         };
                     } else {
-                        user = await User.findOneAndUpdate( { _id: user.id }, {
+                        user = await dbService.updateOne(User, { _id: user.id }, {
                             loginReactiveTime: '',
                             loginRetryLimit: 0
                         }, { new: true });
@@ -54,7 +75,7 @@ const loginUser = async (username, password, platform) => {
                 } else {
                     // send error
                     let expireTime = dayjs().add(LOGIN_REACTIVE_TIME, 'minute');
-                    await User.findOneAndUpdate(
+                    await dbService.updateOne(User,
                         { _id: user.id, isDeleted: false },
                         {
                             loginReactiveTime: expireTime.toISOString(),
@@ -69,35 +90,41 @@ const loginUser = async (username, password, platform) => {
         if (password) {
                 const isPasswordMatched = await user.isPasswordMatch(password);
                 if (!isPasswordMatched) {
-                    await User.findOneAndUpdate(
-                        { _id: user.id, isActive: true, isDeleted: false },
+                    await dbService.updateOne(User,
+                        { _id: user.id, isDeleted: false },
                         { loginRetryLimit: user.loginRetryLimit + 1 });
-                    return { flag: true, data: 'Invalid credential' }
+                    return { flag: true, data: 'Incorrect Password' }
                 }
             }
             const userData = user.toJSON()
+            let token;
+            let refreshToken;
             if (!user.userType) {
                 return { flag: true, data: 'You have not been assigned any role' }
             }
-            if (platform == PLATFORM.USERAPP) {
-                if (!LOGIN_ACCESS[user.userType].includes(PLATFORM.USERAPP)) {
-                    return { flag: true, data: 'you are unable to access this platform' }
-                }
-                // token = await generateToken(userData, JWT.USERAPP_SECRET)
+            if (user.userType==1) {
+                // if (!LOGIN_ACCESS[user.userType].includes(PLATFORM.USERAPP)) {
+                //     return { flag: true, data: 'you are unable to access this platform' }
+                // }
+                token = await generateToken(userData, JWT.USERAPP_SECRET)
+                refreshToken = await generateRefreshToken(userData, JWT.USERAPP_SECRET)
+                
+                
             }
-            else if (platform == PLATFORM.ADMIN) {
-                if (!LOGIN_ACCESS[user.userType].includes(PLATFORM.ADMIN)) {
-                    return { flag: true, data: 'you are unable to access this platform' }
-                }
-                // token = await generateToken(userData, JWT.ADMIN_SECRET)
+            else if (user.userType==2) {
+                // if (!LOGIN_ACCESS[user.userType].includes(PLATFORM.ADMIN)) {
+                //     return { flag: true, data: 'you are unable to access this platform' }
+                // }
+                token = await generateToken(userData, JWT.ADMIN_SECRET)
+                refreshToken = await generateRefreshToken(userData, JWT.ADMIN_SECRET)
             }
           
-            let token =  jwt.sign({id:userData.id,email:userData.email},process.env.JWT_SCERET,{expiresIn:10000*60})
-            let expire = dayjs().add(10000*60, 'second').toISOString();
-            let  updateUser = await User.findOneAndUpdate({ _id: user.id, isDeleted: false },{token:{value:token,expireTime:expire}},{returnNewDocument: true})
-            console.log("expire Time Token",expire);
-            // updateUser = updateUser.toJSON();
-            let userToReturn = { ...userData, token:{value:token,expireTime:expire} };
+         
+            let expire = dayjs().add(JWT.EXPIRES_IN, 'second').toISOString();
+            let expireRefresh = dayjs().add(JWT.REFRESH_TOKEN_EXPIRE_IN, 'second').toISOString() ;
+            await dbService.create(userTokens, { userId: user.id, token: token,refreshToken:refreshToken, tokenExpiredTime: expire,refreshTokenExpiredTime:expireRefresh });
+
+            let userToReturn = { ...userData, token,refreshToken };
             return { flag: false, data: userToReturn }
 
         } else {
@@ -107,6 +134,14 @@ const loginUser = async (username, password, platform) => {
         throw new Error(error.message)
     }
 };
+
+// OTP Notifications Via Email and Sms
+
+/**
+ * @description : send notification on reset password.
+ * @param {Object} user : user document
+ * @return {}  : returns status where notification is sent or not
+ */
 
 const sendResetPasswordOtpNotification = async (user) => {
     let resultOfEmail = false;
@@ -196,4 +231,44 @@ const resetPassword = async (user, newPassword) => {
     }
 };
 
-module.exports = {loginUser ,sendResetPasswordOtpNotification , resetPassword}
+const socialLogin = async (email, platform="userapp") => {
+    try {
+        const user = await dbService.findOne(User, { email });
+        if (user && user.email) {
+            const { ...userData } = user.toJSON();
+            if (!user.userType) {
+                return { flag: true, data: 'You have not been assigned any role' }
+            }
+            if (platform === undefined) {
+                return { flag: true, data: 'Please login through Platform' }
+            }
+            if (!PLATFORM[platform.toUpperCase()] || !JWT[`${platform.toUpperCase()}_SECRET`]) {
+                return {
+                    flag: true,
+                    data: 'Platform not exists'
+                };
+            }
+            if (!LOGIN_ACCESS[user.userType].includes(PLATFORM[platform.toUpperCase()])) {
+                return {
+                    flag: true,
+                    data: 'you are unable to access this platform'
+                };
+            }
+            let token = await generateToken(userData, JWT[`${platform.toUpperCase()}_SECRET`]);
+            let refreshToken = await generateRefreshToken(userData, JWT[`${platform.toUpperCase()}_SECRET`])
+            let expire = dayjs().add(JWT.EXPIRES_IN, 'second').toISOString();
+            let expireRefresh = dayjs().add(JWT.REFRESH_TOKEN_EXPIRE_IN, 'second').toISOString() ;
+            await dbService.create(userTokens, { userId: user.id, token: token,refreshToken:refreshToken, tokenExpiredTime: expire,refreshTokenExpiredTime:expireRefresh });
+            const userToReturn = { ...userData, token };
+            return { flag: false, data: userToReturn };
+        }
+        else {
+            return { flag: true, data: 'User/Email not exists' }
+        }
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
+
+module.exports = {loginUser,socialLogin,generateRefreshToken,generateToken,sendResetPasswordOtpNotification,resetPassword }

@@ -5,34 +5,29 @@
  */
  
 const {
-    Strategy, ExtractJwt, 
-  } = require('passport-jwt');
-  const User = require('../model/user');
-  
-  const userappPassportStrategy = (passport) => {
-    const options = {};
-    options.jwtFromRequest = (req) => {
-      let token = null;
-      if (req && req.cookies) {
-        token = req.cookies.token;  // Assumes the JWT is stored under 'token' in the cookies
-      }
-      return token;
-    };
-    options.secretOrKey = process.env.JWT_SCERET;
-    passport.use('userapp-rule',
-      new Strategy(options, async (payload, done) => {
-        try {
-          const result = await User.findOne({ _id: payload.id || payload.userId });
-          if (result) {
-            return done(null, result.toJSON());
-          }
-          return done('No User Found', {});
-        } catch (error) {
-            console.log("error in config userappPasswordStratagey",error);
-          return done(error,{});
+  Strategy, ExtractJwt 
+} = require('passport-jwt');
+const { JWT } = require('../constants/authConstant');
+const User = require('../model/user');
+
+const userappPassportStrategy = (passport) => {
+  const options = {};
+  options.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+  options.secretOrKey = JWT.USERAPP_SECRET;
+ 
+  passport.use('userapp-rule',
+    new Strategy(options, async (payload, done) => {
+      try {
+        const result = await User.findOne({ _id: payload.id });
+        if (result) {
+          return done(null, result.toJSON());
         }
-      })
-    );   
-  };
-  
-  module.exports = { userappPassportStrategy };
+        return done('No User Found', {});
+      } catch (error) {
+        return done(error,{});
+      }
+    })
+  );   
+};
+
+module.exports = { userappPassportStrategy };
