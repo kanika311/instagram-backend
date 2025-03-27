@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const postController = require("../controller/postController");
+const likeController = require ("../controller/likeController")
+const commentController = require("../controller/commentController")
 const {PLATFORM} = require("../constants/authConstant");
 const auth = require("../middleware/auth");
 const storage = require("../middleware/upload");
@@ -16,5 +18,8 @@ router.put('/update/:id',auth(PLATFORM.USERAPP), uploadStorage.array("file", 10)
 router.put('/update-like/:id',auth(PLATFORM.USERAPP), postController.updatePostLike);
 router.delete('/soft-delete/:id',auth(PLATFORM.USERAPP), postController.softDeletePost);
 router.delete('/delete/:id',auth(PLATFORM.USERAPP), postController.deletePost);
+router.post('/like',auth(PLATFORM.USERAPP),likeController.toggleLike)
+router.post('/comment',auth(PLATFORM.USERAPP),commentController.addComment)
+router.delete('/deleteComment/:id',auth(PLATFORM.USERAPP),commentController.deleteComment)
 
 module.exports = router;

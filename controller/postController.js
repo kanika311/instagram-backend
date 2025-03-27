@@ -4,31 +4,13 @@ const Post = require("../model/post");
 const ObjectId = require('mongodb').ObjectId;
 
 const create = async(req,res) => {
-  let files = [];
+ 
     try {
         let reqData = req.body || {};
         if(!reqData.userId){
           reqData.userId = req.user.id;
         }
-        // let validateRequest = validation.validateParamsWithJoi(
-        //     reqData,
-        //     PostSchemaKey.schemaKeys);
-        //   if (!validateRequest.isValid) {
-        //     return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
-        //   }
-
-        // const check = {
-        //     userId: reqData.userId,
-        //     title:reqData?.title,
-        //     publishedDate: reqData?.publishedDate,
-        //     description: reqData?.description,
-        // }
-
-        // let PostCheck = await Post.findOne(check)
-        // console.log("PostCheck",PostCheck);
-        // if(PostCheck){
-        //     return res.badRequest({message : "Product already in Your Post"})
-        // }
+       
         reqData = {...reqData, postValue: req.files}
         let dataToCreate = new Post(reqData);
         let createdData = await Post.create(dataToCreate)

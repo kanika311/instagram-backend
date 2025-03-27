@@ -1,9 +1,7 @@
 const mongoose = require("mongoose");
 const mongoosePaginate = require('mongoose-paginate-v2');
 const uniqueValidator = require('mongoose-unique-validator');
-const bcrypt = require("bcrypt");
-const {USER_TYPES} = require("../constants/authConstant");
-const {convertObjectToEnum} = require("../utils/common")
+
 
 const myCustomLabels = {
     totalDocs: 'itemCount',
@@ -33,44 +31,13 @@ const myCustomLabels = {
        },
       required: true
     },
-    postValue: [{
-      fieldname: String,
-      originalname: String,
-      encoding: String,
-      mimetype: String,
-      destination: String,
-      filename: String,
-      path: String,
-      size: Number
+    posts: [{
+      pic: {type: String}
     }],
     description: {type: String},
-    like:[{
-      ref: 'user',
-        type: Schema.Types.ObjectId,
-        validate: {
-          validator: async function(value) {
-             const id = await mongoose.model('user').findById(value);
-             return !!id;
-          },
-          message: 'user does not exist.'
-       }}],
-    comment:[{
-      user:{
-        ref: 'user',
-        type: Schema.Types.ObjectId,
-        validate: {
-          validator: async function(value) {
-             const id = await mongoose.model('user').findById(value);
-             return !!id;
-          },
-          message: 'user does not exist.'
-       }
-      },
-      message: String,
-      createdAt: { type: Date },
-      updatedAt: { type: Date },
-    }],
-
+    location: {type: String},
+    likeCount: { type: Number, default: 0 },
+    dislikeCount: { type: Number, default: 0 },
       isDeleted: { type: Boolean },
       createdAt: { type: Date },
       updatedAt: { type: Date },
@@ -99,6 +66,16 @@ const myCustomLabels = {
       }
     }
     next();
+  });
+
+  schema.virtual('comments', {
+    ref: 'comment',
+    localField: '_id',
+    foreignField: 'postId',
+    options: { 
+      sort: { createdAt: -1 },
+      match: { isDeleted: false }
+    }
   });
 
   schema.method('toJSON', function () {
