@@ -32,7 +32,7 @@ const myCustomLabels = {
       required: true
     },
     posts: [{
-      pic: {type: String}
+      pic: {type:String,required:true}
     }],
     description: {type: String},
     location: {type: String},

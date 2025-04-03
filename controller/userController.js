@@ -3,6 +3,7 @@ const UserSchemaKey = require('../utils/validation/userValidation');
 const validation = require('../utils/validateRequest');
 const ObjectId = require('mongodb').ObjectId;
 const dbService = require('../utils/dbServices');
+const { upload, uploadToSpaces } = require('../services/fileUploadServices')
 
 
 // const findAllUser = async (req,res) => {
@@ -227,7 +228,42 @@ const me = async (req, res) => {
   };
 
   
+  const uploadProfilePicture = async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "Profile picture is required" });
+      }
   
+      // Upload the file to Digital Ocean Spaces
+      const imageUrl = await uploadToSpaces(req.file);
+  
+      // Update the user's picture field
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { picture: imageUrl },
+        { new: true }
+      ).select('-password'); // Exclude password from the response
+  
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      return res.status(200).json({ 
+        message: "Profile picture updated successfully", 
+        data: updatedUser 
+      });
+  
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      return res.status(500).json({ 
+        message: error.message || "Internal Server Error" 
+      });
+    }
+  };
+  
+  const uploadMiddleware = upload.single('profilePicture');
 
 module.exports = {
   me,
@@ -236,4 +272,6 @@ getProfileInfo,
   updateUser,
   softDeleteUser,
   deleteUser,
+  uploadProfilePicture,
+  uploadMiddleware
 }

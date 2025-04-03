@@ -63,6 +63,15 @@ commentSchema.virtual('replies', {
   });
 
 
+  commentSchema.method('toJSON', function () {
+    const {
+      _id, __v, ...object
+    } = this.toObject({ virtuals: true });
+    object.id = _id;
+    return object;
+  });
+
+
 commentSchema.plugin(mongoosePaginate);
 commentSchema.plugin(uniqueValidator, { message: 'Error, expected {VALUE} to be unique.' });
 module.exports = mongoose.model('comment', commentSchema);

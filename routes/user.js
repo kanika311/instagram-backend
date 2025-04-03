@@ -11,5 +11,6 @@ router.get('/getProfileInfo',auth(PLATFORM.USERAPP), userController.getProfileIn
 router.put('/update/:id',auth(PLATFORM.USERAPP), userController.updateUser);
 router.delete('/soft-delete/:id',auth(PLATFORM.USERAPP), userController.softDeleteUser);
 router.delete('/delete/:id',auth(PLATFORM.USERAPP), userController.deleteUser);
+router.put('/upload/:userId',auth(PLATFORM.USERAPP),userController.uploadMiddleware,userController.uploadProfilePicture)
 
 module.exports = router;

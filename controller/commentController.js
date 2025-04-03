@@ -31,18 +31,74 @@ const addComment = async (req, res) => {
 
 const getCommentsForPost = async (req, res) => {
   try {
-    const { postId } = req.params;
-    const comments = await Comment.find({ postId, isDeleted: false })
-      .populate('userId', 'username profilePic') // Adjust fields as needed
-      .sort({ createdAt: -1 });
+    let options = {};
+    let query = { postId: req.params.postId, isDeleted: false };
 
-    return res.status(200).json({
-      success: true,
-      data: comments,
-      message: 'Comments retrieved successfully'
-    });
+    // Handle query merging
+    if (typeof req.body.query === 'object' && req.body.query !== null) {
+      query = { ...query, ...req.body.query };
+    }
+
+    // Handle countOnly request
+    if (req.body.isCountOnly) {
+      let totalRecords = await Comment.countDocuments(query);
+      return res.success({ data: { totalRecords } });
+    }
+
+    // Set up options
+    if (req.body && typeof req.body.options === 'object' && req.body.options !== null) {
+      options = { 
+        ...req.body.options,
+        populate: [
+          {
+            path: 'userId',
+            select: 'name picture'
+          },
+          {
+            path: 'replies',
+            populate: {
+              path: 'userId',
+              select: 'name picture'
+            },
+            options: { sort: { createdAt: -1 } }
+          }
+        ],
+        sort: { createdAt: -1 }
+      };
+    } else {
+      options = {
+        populate: [
+          {
+            path: 'userId',
+            select: 'name picture'
+          },
+          {
+            path: 'replies',
+            populate: {
+              path: 'userId',
+              select: 'name picture'
+            },
+            options: { sort: { createdAt: -1 } }
+          }
+        ],
+        sort: { createdAt: -1 }
+      };
+    }
+
+    // Apply default pagination if not specified
+    if (!options.page) options.page = 1;
+    if (!options.limit) options.limit = 10;
+
+    // Execute paginated query
+    let foundComments = await Comment.paginate(query, options);
+
+    if (!foundComments || !foundComments.data || !foundComments.data.length) {
+      return res.recordNotFound();
+    }
+
+    return res.success({ data: foundComments });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.internalServerError({ message: error.message });
   }
 };
 

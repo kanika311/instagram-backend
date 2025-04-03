@@ -2,41 +2,49 @@ const Post = require("../model/post");
 // const PostSchemaKey = require('../utils/validation/PostValidation');
 // const validation = require('../utils/validateRequest');
 const ObjectId = require('mongodb').ObjectId;
+const { upload, uploadToSpaces } = require('../services/fileUploadServices')
 
-const create = async(req,res) => {
- 
-    try {
-        let reqData = req.body || {};
-        if(!reqData.userId){
-          reqData.userId = req.user.id;
-        }
-       
-        reqData = {...reqData, postValue: req.files}
-        let dataToCreate = new Post(reqData);
-        let createdData = await Post.create(dataToCreate)
-        
-        return res.success({ data : createdData });
-  
+const create = async (req, res) => {
+  try {
+    const { userId, description, location } = req.body;
 
-    } catch (error) {
-        console.log("Post create", error);
-        return res.internalServerError({ message: "Internal Server Error" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least one image is required" });
     }
-}
+
+    // Upload each file to Digital Ocean Spaces
+    const uploadPromises = req.files.map(file => uploadToSpaces(file));
+    const imageUrls = await Promise.all(uploadPromises);
+
+    const newPost = new Post({
+      userId,
+      posts: imageUrls.map(url => ({ pic: url })),
+      description,
+      location,
+    });
+
+    const savedPost = await newPost.save();
+    return res.status(201).json({ 
+      message: "Post created successfully", 
+      data: savedPost 
+    });
+
+  } catch (error) {
+    console.error("Error creating post:", error);
+    return res.status(500).json({ 
+      message: error.message || "Internal Server Error" 
+    });
+  }
+};
+
+const uploadPostImages = upload.array('images', 10); // Max 10 images
 
 const findAllPost = async (req,res) => {
     try {
       let options = {};
       let query = {};
 
-      // let validateRequest = validation.validateFilterWithJoi(
-      //   req.body,
-      //   PostSchemaKey.findFilterKeys,
-      //   Post.schema.obj
-      // );
-      // if (!validateRequest.isValid) {
-      //   return res.validationError({ message: `${validateRequest.message}` });
-      // }
+      
 
       if (typeof req.body.query === 'object' && req.body.query !== null) {
         query = { ...req.body.query };
@@ -208,4 +216,5 @@ module.exports = {
   updatePostLike,
   softDeletePost,
   deletePost,
+  uploadPostImages
 }

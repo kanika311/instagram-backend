@@ -1,10 +1,11 @@
 // controllers/commentReply.controller.js
-const CommentReply = require('../models/commentReply.model');
-const Comment = require('../models/comment.model');
+const CommentReply = require('../model/commentReply');
+const Comment = require('../model/comment');
+
 
 const addReply = async (req, res) => {
   try {
-    const { commentId } = req.params;
+    const { commentId } = req.body;
     const { text } = req.body;
     const userId = req.user.id;
 
@@ -66,3 +67,11 @@ const deleteReply = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+
+module.exports = {
+  addReply,
+  getRepliesForComment,
+  deleteReply
+}
