@@ -59,6 +59,7 @@ const schema = new Schema(
 			{
 				ref: "user",
 				type: Schema.Types.ObjectId,
+				index:true,
 				validate: {
 					validator: async function (value) {
 						const id = await mongoose.model("user").findById(value);
@@ -72,6 +73,7 @@ const schema = new Schema(
 			{
 				ref: "user",
 				type: Schema.Types.ObjectId,
+				index:true,
 				validate: {
 					validator: async function (value) {
 						const id = await mongoose.model("user").findById(value);
@@ -85,6 +87,7 @@ const schema = new Schema(
 			{
 				ref: "user",
 				type: Schema.Types.ObjectId,
+				index:true,
 				validate: {
 					validator: async function (value) {
 						const id = await mongoose.model("user").findById(value);
@@ -98,6 +101,7 @@ const schema = new Schema(
 			{
 				ref: "user",
 				type: Schema.Types.ObjectId,
+				index:true,
 				validate: {
 					validator: async function (value) {
 						const id = await mongoose.model("user").findById(value);

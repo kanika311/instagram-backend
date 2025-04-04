@@ -6,10 +6,13 @@ const auth = require("../middleware/auth");
 
 
 // router.post('/list',auth(PLATFORM.USERAPP), userController.findAllUser);
-router.put('/create',auth(PLATFORM.USERAPP), friendshipController.create);
-router.put('/reqAccept',auth(PLATFORM.USERAPP), friendshipController.reqAccept);
-router.post('/findAllRequest',auth(PLATFORM.USERAPP), friendshipController.findAllRequest);
-router.put('/destroy',auth(PLATFORM.USERAPP), friendshipController.destroy);
-router.put('/removeFollower',auth(PLATFORM.USERAPP), friendshipController.reqRemoveFollower);
+router.post('/follow',auth(PLATFORM.USERAPP), friendshipController.create);
+router.post('/accept-request',auth(PLATFORM.USERAPP), friendshipController.reqAccept);
+router.post('/reject-request',auth(PLATFORM.USERAPP), friendshipController.rejectRequest);
+router.post('/cancel-request',auth(PLATFORM.USERAPP), friendshipController.cancelRequest);
+router.post('/unfollow',auth(PLATFORM.USERAPP), friendshipController.unfollow);
+router.get('/followers',auth(PLATFORM.USERAPP), friendshipController.getFollowers);
+router.get('/following',auth(PLATFORM.USERAPP), friendshipController.getFollowing);
+router.get('/request',auth(PLATFORM.USERAPP), friendshipController.getFollowRequests);
 
 module.exports = router;
