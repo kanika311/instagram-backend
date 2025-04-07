@@ -45,7 +45,7 @@ router.delete(
 	commentController.deleteComment
 );
 router.post("/commentreply", auth(PLATFORM.USERAPP), replyController.addReply);
-router.get(
+router.post(
 	"/commentlist/:postId",
 	auth(PLATFORM.USERAPP),
 	commentController.getCommentsForPost
