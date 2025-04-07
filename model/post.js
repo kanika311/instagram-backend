@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
-const mongoosePaginate = require('mongoose-paginate-v2');
-const uniqueValidator = require('mongoose-unique-validator');
-
+const mongoosePaginate = require("mongoose-paginate-v2");
+const uniqueValidator = require("mongoose-unique-validator");
 
 const myCustomLabels = {
     totalDocs: 'itemCount',
@@ -36,7 +35,7 @@ const myCustomLabels = {
     }],
     description: {type: String},
     location: {type: String},
-    isLiked:{type:Boolean,default:false},
+	isLiked:{type:Boolean,default:false},
     likeCount: { type: Number, default: 0 },
     dislikeCount: { type: Number, default: 0 },
       isDeleted: { type: Boolean },
@@ -59,36 +58,36 @@ const myCustomLabels = {
     next();
   });
 
-  schema.pre('insertMany', async function (next, docs) {
-    if (docs && docs.length) {
-      for (let index = 0; index < docs.length; index++) {
-        const element = docs[index];
-        element.isDeleted = false;
-      }
-    }
-    next();
-  });
+schema.pre("insertMany", async function (next, docs) {
+	if (docs && docs.length) {
+		for (let index = 0; index < docs.length; index++) {
+			const element = docs[index];
+			element.isDeleted = false;
+		}
+	}
+	next();
+});
 
-  schema.virtual('comments', {
-    ref: 'comment',
-    localField: '_id',
-    foreignField: 'postId',
-    options: { 
-      sort: { createdAt: -1 },
-      match: { isDeleted: false }
-    }
-  });
+schema.virtual("comments", {
+	ref: "comment",
+	localField: "_id",
+	foreignField: "postId",
+	options: {
+		sort: { createdAt: -1 },
+		match: { isDeleted: false },
+	},
+});
 
-  schema.method('toJSON', function () {
-    const {
-      _id, __v, ...object
-    } = this.toObject({ virtuals: true });
-    object.id = _id;
-    return object;
-  });
+schema.method("toJSON", function () {
+	const { _id, __v, ...object } = this.toObject({ virtuals: true });
+	object.id = _id;
+	return object;
+});
 
 schema.plugin(mongoosePaginate);
-schema.plugin(uniqueValidator, { message: 'Error, expected {VALUE} to be unique.' });
-const post = mongoose.model('post', schema);
+schema.plugin(uniqueValidator, {
+	message: "Error, expected {VALUE} to be unique.",
+});
+const post = mongoose.model("post", schema);
 
 module.exports = post;
