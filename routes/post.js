@@ -24,6 +24,6 @@ router.post('/like',auth(PLATFORM.USERAPP),likeController.toggleLike)
 router.post('/comment',auth(PLATFORM.USERAPP),commentController.addComment)
 router.delete('/deleteComment/:id',auth(PLATFORM.USERAPP),commentController.deleteComment)
 router.post('/commentreply',auth(PLATFORM.USERAPP),replyController.addReply)
-router.get('/commentlist/:postId',auth(PLATFORM.USERAPP),commentController.getCommentsForPost)
+router.post('/commentlist/:postId',auth(PLATFORM.USERAPP),commentController.getCommentsForPost)
 
 module.exports = router;
