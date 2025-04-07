@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const MessageController = require('../controller/messageController');
+const messageController = require('../controller/messageController');
 const auth = require("../middleware/auth");
 const { PLATFORM } = require("../constants/authConstant");
 
-router.post('/findAllMessage/:chatId',auth(PLATFORM.USERAPP),MessageController.findAllMessage);
-router.put('/updateMessage/:id',auth(PLATFORM.USERAPP),MessageController.updateMessage);
-router.delete('/soft-delete/:id',auth(PLATFORM.USERAPP),MessageController.softDeleteMessage);
-router.delete('/deleteMessage/:id',auth(PLATFORM.USERAPP),MessageController.deleteMessage);
+router.post('/send',auth(PLATFORM.USERAPP), messageController.sendMessage);
+router.get('/get/:chatId',auth(PLATFORM.USERAPP), messageController.getMessages);
+router.post('/mark-seen',auth(PLATFORM.USERAPP), messageController.markAsSeen);
+router.delete('/delete/:messageId',auth(PLATFORM.USERAPP), messageController.deleteMessage);
 
 
 module.exports = router;

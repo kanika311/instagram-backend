@@ -8,5 +8,6 @@ router.use('/userapp/search',require('./search'))
 router.use('/userapp/user',require('./user'))
 router.use('/userapp/friendship',require('./friendship'))
 router.use('/userapp/chat',require('./chat'))
+router.use('/userapp/message',require('./message'))
 
 module.exports = router;

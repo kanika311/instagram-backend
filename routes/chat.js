@@ -5,12 +5,13 @@ const auth = require("../middleware/auth");
 const { PLATFORM } = require("../constants/authConstant");
 
 
-router.post('/create',auth(PLATFORM.USERAPP),chatController.create);
-router.get('/getChat/:id',auth(PLATFORM.USERAPP),chatController.getChat);
-router.get('/findAllChat',auth(PLATFORM.USERAPP),chatController.findAllChat);
-router.put('/updateChat/:id',auth(PLATFORM.USERAPP),chatController.updateChat);
-router.delete('/soft-delete/:id',auth(PLATFORM.USERAPP),chatController.softDeleteChat);
-router.delete('/deleteChat/:id',auth(PLATFORM.USERAPP),chatController.deleteChat);
+router.post('/',auth(PLATFORM.USERAPP), chatController.createChat);
+router.get('/',auth(PLATFORM.USERAPP), chatController.getUserChats);
+router.get('/:chatId',auth(PLATFORM.USERAPP), chatController.getChatDetails);
+router.put('/group/:chatId',auth(PLATFORM.USERAPP), chatController.updateGroup);
+router.post('/group/:chatId/participants',auth(PLATFORM.USERAPP), chatController.addParticipants);
+router.delete('/group/:chatId/participants/:userId',auth(PLATFORM.USERAPP), chatController.removeParticipant);
+
 
 
 module.exports = router;
