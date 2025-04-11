@@ -6,39 +6,42 @@ const dbService = require('../utils/dbServices');
 const { upload, uploadToSpaces } = require('../services/fileUploadServices')
 
 
-// const findAllUser = async (req,res) => {
-//     try {
-//       let options = {};
-//       let query = {};
-
-//       // let validateRequest = validation.validateFilterWithJoi(
-//       //   req.body,
-//       //   UserSchemaKey.findFilterKeys,
-//       //   User.schema.obj
-//       // );
-//       // if (!validateRequest.isValid) {
-//       //   return res.validationError({ message: `${validateRequest.message}` });
-//       // }
-
-//       if (typeof req.body.query === 'object' && req.body.query !== null) {
-//         query = { ...req.body.query };
-//       }
-//       if (req.body.isCountOnly){
-//         let totalRecords = await User.countDocuments(query);
-//         return res.success({ data: { totalRecords } });
-//       }
-//       if (req.body && typeof req.body.options === 'object' && req.body.options !== null) {
-//         options = { ...req.body.options };
-//       }
-//       let foundUsers = await User.paginate(query,options);
-//       if (!foundUsers || !foundUsers.data || !foundUsers.data.length){
-//         return res.recordNotFound(); 
-//       }
-//       return res.success({ data :foundUsers });
-//     } catch (error){
-//       return res.internalServerError({ message:error.message });
-//     }
-//   };
+const findAllUser = async (req,res) => {
+  try {
+    let options = {};
+    let query = {};
+    let validateRequest = validation.validateFilterWithJoi(
+      req.body,
+      UserSchemaKey.findFilterKeys,
+      User.schema.obj
+    );
+    if (!validateRequest.isValid) {
+      return res.validationError({ message: `${validateRequest.message}` });
+    }
+    if (typeof req.body.query === 'object' && req.body.query !== null) {
+      query = { ...req.body.query };
+    }
+    query._id = { $ne: req.user.id };
+    if (req.body && req.body.query && req.body.query._id) {
+      query._id.$in = [req.body.query._id];
+    }
+    console.log(query)
+    if (req.body.isCountOnly){
+      let totalRecords = await dbService.count(User, query);
+      return res.success({ data: { totalRecords } });
+    }
+    if (req.body && typeof req.body.options === 'object' && req.body.options !== null) {
+      options = { ...req.body.options };
+    }
+    let foundUsers = await dbService.paginate( User,query,options);
+    if (!foundUsers || !foundUsers.data || !foundUsers.data.length){
+      return res.recordNotFound(); 
+    }
+    return res.success({ data :foundUsers });
+  } catch (error){
+    return res.internalServerError({ message:error.message });
+  }
+};
    
 const me = async (req, res) => {
   try {
@@ -273,5 +276,6 @@ getProfileInfo,
   softDeleteUser,
   deleteUser,
   uploadProfilePicture,
-  uploadMiddleware
+  uploadMiddleware,
+  findAllUser
 }

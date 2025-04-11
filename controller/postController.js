@@ -8,7 +8,7 @@ const create = async (req, res) => {
   try {
     const { userId, description, location } = req.body;
 
-    if (!req.files || req.files.length === 0) {
+    if (!req.files || req.files.length == 0) {
       return res.status(400).json({ message: "At least one image is required" });
     }
 
