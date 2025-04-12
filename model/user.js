@@ -69,6 +69,20 @@ const schema = new Schema(
 				},
 			},
 		],
+		post: [
+			{
+				ref: "post",
+				type: Schema.Types.ObjectId,
+				index:true,
+				validate: {
+					validator: async function (value) {
+						const id = await mongoose.model("user").findById(value);
+						return !!id;
+					},
+					message: "user does not exist.",
+				},
+			},
+		],
 		following: [
 			{
 				ref: "user",
