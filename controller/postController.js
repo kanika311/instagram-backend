@@ -3,19 +3,21 @@ const Post = require("../model/post");
 // const validation = require('../utils/validateRequest');
 const ObjectId = require('mongodb').ObjectId;
 const { upload, uploadToSpaces } = require('../services/fileUploadServices')
+const User = require('../model/user')
 
 const create = async (req, res) => {
   try {
     const { userId, description, location } = req.body;
 
-    if (!req.files || req.files.length == 0) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "At least one image is required" });
     }
 
-    // Upload each file to Digital Ocean Spaces
+    // Upload images to Digital Ocean Spaces
     const uploadPromises = req.files.map(file => uploadToSpaces(file));
     const imageUrls = await Promise.all(uploadPromises);
 
+    // Create new post
     const newPost = new Post({
       userId,
       posts: imageUrls.map(url => ({ pic: url })),
@@ -24,18 +26,27 @@ const create = async (req, res) => {
     });
 
     const savedPost = await newPost.save();
-    return res.status(201).json({ 
-      message: "Post created successfully", 
-      data: savedPost 
+
+    // Push post ID to user's post array
+    await User.findByIdAndUpdate(
+      userId,
+      { $push: { post: savedPost.id } },
+      { new: true }
+    );
+
+    return res.status(201).json({
+      message: "Post created successfully",
+      data: savedPost,
     });
 
   } catch (error) {
     console.error("Error creating post:", error);
-    return res.status(500).json({ 
-      message: error.message || "Internal Server Error" 
+    return res.status(500).json({
+      message: error.message || "Internal Server Error",
     });
   }
 };
+
 
 const uploadPostImages = upload.array('images', 10); // Max 10 images
 

@@ -47,22 +47,27 @@ const me = async (req, res) => {
   try {
     const query = {
       _id: req.user.id,
-      isDeleted: false
+      isDeleted: false,
+      isActive: true
     };
 
-    console.log('hello user')
-    query.isActive = true;
-    let foundUser = await dbService.findOne(User, query);
+    const foundUser = await User.findOne(query).populate({
+      path: 'post',
+      model: 'post', // Replace with your actual Post model name if different
+      select: 'description location posts createdAt' // Optional: select only specific fields
+    });
+
     if (!foundUser) {
       return res.recordNotFound();
     }
 
-    console.log(foundUser,'user')
     return res.success({ data: foundUser });
   } catch (error) {
+    console.error("Error in /me:", error);
     return res.internalServerError({ message: error.message });
   }
 };
+
   const getProfileInfo = async (req,res) => {
       try {
         let query = {};
