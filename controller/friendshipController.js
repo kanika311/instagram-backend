@@ -5,6 +5,8 @@ const create = async (req, res) => {
     try {
         const { friendId } = req.body;
 
+        // console.log(friendId,'firendID')
+
         // Validate request parameters
         if (!friendId) {
             return res.badRequest({ message: "friendId is required" });
@@ -20,11 +22,15 @@ const create = async (req, res) => {
             return res.badRequest({ message: "You cannot follow yourself" });
         }
 
+        
+
         // Check if already following (using $in for more reliable check)
         const existingUser = await User.findOne({
             _id: req.user.id,
             following: { $in: [friendId] }
         });
+
+       
         
         if (existingUser) {
             const userData = await User.findById(req.user.id)
@@ -39,15 +45,21 @@ const create = async (req, res) => {
             });
         }
 
+        
+
         // Find the user to follow
         const userToFollow = await User.findOne({ 
             _id: friendId, 
             isDeleted: false 
         });
 
+        
+
         if (!userToFollow) {
             return res.recordNotFound();
         }
+
+        
 
         // Prepare response data
         let data = {
@@ -56,6 +68,8 @@ const create = async (req, res) => {
             request_by_user: false,
             blocked_user: false
         };
+
+        
 
         // Check for existing request
         if (userToFollow.requestes?.includes(req.user.id)) {
@@ -73,6 +87,7 @@ const create = async (req, res) => {
                 data: data
             });
         }
+       
 
         // Handle private accounts
         if (userToFollow.isPrivate) {
@@ -90,57 +105,54 @@ const create = async (req, res) => {
             
             return res.success({ 
                 message: "Follow request sent successfully",
-                data: data,
-                userData: {
-                    requests: updatedUser.requestes
-                }
+                data:{
+                    data,
+                    userData: {
+                        requests: updatedUser.requestes
+                    }
+                },
+               
             });
         }
 
-        // Handle public accounts - use transactions for atomic updates
-        const session = await mongoose.startSession();
-        session.startTransaction();
         
+
+        // console.log('session')
+        // Handle public accounts - use transactions for atomic updates
         try {
-            // Add to user's following list (with $addToSet)
-            await User.findByIdAndUpdate(
-                req.user.id,
-                { $addToSet: { following: friendId } },
-                { session }
-            );
-
-            // Add to target user's followers list (with $addToSet)
-            await User.findByIdAndUpdate(
-                friendId,
-                { $addToSet: { followers: req.user.id } },
-                { session }
-            );
-
-            await session.commitTransaction();
-            session.endSession();
-
+            await Promise.all([
+              User.findByIdAndUpdate(req.user.id, {
+                $addToSet: { following: friendId }
+              }),
+              User.findByIdAndUpdate(friendId, {
+                $addToSet: { followers: req.user.id }
+              })
+            ]);
+          
             data.follow_by_user = true;
-
+          
             const updatedUser = await User.findById(req.user.id)
-                .populate('following', 'username name picture')
-                .lean();
-
-            return res.success({ 
-                message: "Successfully followed user",
-                data: data,
+              .populate('following', 'username name picture')
+              .lean();
+          
+            return res.success({
+              message: "Successfully followed user",
+              data: {
+                data,
                 userData: {
-                    following: updatedUser.following
+                  following: updatedUser.following
                 }
+              }
             });
-        } catch (transactionError) {
-            await session.abortTransaction();
-            session.endSession();
-            throw transactionError;
-        }
+          } catch (err) {
+            console.error("❌ Follow error without transaction:", err);
+            return res.internalServerError({ message: err.message });
+          }
+          
 
     } catch (error) {
         return res.internalServerError({ 
-            message: "Error processing follow request",
+            message: "Error processing follow request check controller",
             error: error.message 
         });
     }
