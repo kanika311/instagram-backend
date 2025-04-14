@@ -324,12 +324,14 @@ const cancelRequest = async (req, res) => {
 const unfollow = async (req, res) => {
     try {
         const { friendId } = req.body;
+        console.log(req.user,'user')
 
         if (!friendId) {
             return res.badRequest({ message: "friendId is required" });
         }
 
-        if (!req.user.following.includes(friendId)) {
+        const followingIds = req.user.following.map(id => id.toString());
+        if (!followingIds.includes(friendId.toString())) {
             return res.badRequest({ message: "You don't follow this user" });
         }
 
