@@ -14,5 +14,6 @@ router.post('/unfollow',auth(PLATFORM.USERAPP), friendshipController.unfollow);
 router.get('/followers',auth(PLATFORM.USERAPP), friendshipController.getFollowers);
 router.get('/following',auth(PLATFORM.USERAPP), friendshipController.getFollowing);
 router.get('/request',auth(PLATFORM.USERAPP), friendshipController.getFollowRequests);
+router.post('/remove',auth(PLATFORM.USERAPP), friendshipController.removeFollower);
 
 module.exports = router;
