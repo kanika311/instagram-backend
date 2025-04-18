@@ -144,6 +144,26 @@ const me = async (req, res) => {
     }
   };
 
+   const getUser = async (req,res) => {
+        try {
+          let query = {};
+          if (!ObjectId.isValid(req.params.id)) {
+              return res.validationError({ message : 'invalid objectId.' });
+            }
+          query._id = req.params.id;
+          query.isDeleted = false
+          let options = {};
+          let foundUser = await User.findOne(query, options);
+          if (!foundUser){
+            return res.recordNotFound();
+          }
+          return res.success({ data :foundUser });
+        }
+        catch (error){
+          return res.internalServerError({ message:error.message });
+        }
+      };
+
   const updateUser = async (req, res) => {
     try {
         if (!req.params.id) {
@@ -282,5 +302,6 @@ getProfileInfo,
   deleteUser,
   uploadProfilePicture,
   uploadMiddleware,
-  findAllUser
+  findAllUser,
+  getUser
 }
