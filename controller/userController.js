@@ -54,7 +54,7 @@ const me = async (req, res) => {
     const foundUser = await User.findOne(query).populate({
       path: 'post',
       model: 'post', // Replace with your actual Post model name if different
-      select: 'description location posts createdAt' // Optional: select only specific fields
+      select: 'description location posts createdAt isLiked likeCount'// Optional: select only specific fields
     });
 
     if (!foundUser) {
@@ -153,7 +153,11 @@ const me = async (req, res) => {
           query._id = req.params.id;
           query.isDeleted = false
           let options = {};
-          let foundUser = await User.findOne(query, options);
+          let foundUser = await User.findOne(query).populate({
+            path: 'post',
+            model: 'post', // Replace with your actual Post model name if different
+            select: 'description location posts createdAt isLiked likeCount' // Optional: select only specific fields
+          });
           if (!foundUser){
             return res.recordNotFound();
           }
