@@ -4,6 +4,7 @@ const Post = require("../model/post");
 const ObjectId = require('mongodb').ObjectId;
 const { upload, uploadToSpaces } = require('../services/fileUploadServices')
 const User = require('../model/user')
+const Like = require('../model/like');
 
 const create = async (req, res) => {
   try {
@@ -50,52 +51,111 @@ const create = async (req, res) => {
 
 const uploadPostImages = upload.array('images', 10); // Max 10 images
 
-const findAllPost = async (req,res) => {
-    try {
-      let options = {};
-      let query = {};
+const findAllPost = async (req, res) => {
+  try {
+    let options = {};
+    let query = {};
 
-      
-
-      if (typeof req.body.query === 'object' && req.body.query !== null) {
-        query = { ...req.body.query };
-      }
-      if (req.body.isCountOnly){
-        let totalRecords = await Post.countDocuments(query);
-        return res.success({ data: { totalRecords } });
-      }
-      if (req.body && typeof req.body.options === 'object' && req.body.options !== null) {
-        options = { ...req.body.options };
-      }
-      let foundPosts = await Post.paginate(query,options);
-      if (!foundPosts || !foundPosts.data || !foundPosts.data.length){
-        return res.recordNotFound(); 
-      }
-      return res.success({ data :foundPosts });
-    } catch (error){
-      return res.internalServerError({ message:error.message });
+    if (typeof req.body.query === 'object' && req.body.query !== null) {
+      query = { ...req.body.query };
     }
-  };
-   
-  const getPost = async (req,res) => {
-      try {
-        let query = {};
-        if (!ObjectId.isValid(req.params.id)) {
-            return res.validationError({ message : 'invalid objectId.' });
-          }
-        query._id = req.params.id;
-        query.isDeleted = false
-        let options = {};
-        let foundPost = await Post.findOne(query, options);
-        if (!foundPost){
-          return res.recordNotFound();
-        }
-        return res.success({ data :foundPost });
-      }
-      catch (error){
-        return res.internalServerError({ message:error.message });
-      }
+
+    if (req.body.isCountOnly) {
+      const totalRecords = await Post.countDocuments(query);
+      return res.success({ data: { totalRecords } });
+    }
+
+    if (req.body && typeof req.body.options === 'object' && req.body.options !== null) {
+      options = { ...req.body.options };
+    }
+
+    // Step 1: Paginate posts
+    const foundPosts = await Post.paginate(query, options);
+
+    if (!foundPosts || !foundPosts.data || !foundPosts.data.length) {
+      return res.recordNotFound();
+    }
+
+    // Step 2: Get all liked post IDs by the current user
+    const userId = req.user.id; // assuming you attach user in middleware
+    const postIds = foundPosts.data.map(post => post._id);
+    
+    const userLikes = await Like.find({
+      postId: { $in: postIds },
+      userId
+    }).select('postId');
+
+    const likedPostIds = new Set(userLikes.map(like => like.postId.toString()));
+
+    // Step 3: Add `isLiked` field to each post
+    const enrichedPosts = foundPosts.data.map(post => {
+      const postObj = post.toJSON ? post.toJSON() : post;
+      return {
+        ...postObj,
+        isLiked: likedPostIds.has(post._id.toString())
+      };
+    });
+
+    // Step 4: Replace posts with enriched ones
+    const response = {
+      ...foundPosts,
+      data: enrichedPosts
     };
+
+    return res.success({ data: response });
+
+  } catch (error) {
+    console.error('findAllPost error:', error);
+    return res.internalServerError({ message: error.message });
+  }
+};
+   
+const getPost = async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user?.id; // assuming user is set in auth middleware
+
+    if (!ObjectId.isValid(postId)) {
+      return res.validationError({ message: 'Invalid post ID.' });
+    }
+
+    const query = { _id: postId, isDeleted: false };
+
+    // Fetch post and optionally populate things like userId or comments
+    const foundPost = await Post.findOne(query)
+      .populate({
+        path: 'userId',
+        select: 'name email' // adjust fields as per your need
+      })
+      .populate({
+        path: 'comments',
+        select: 'text userId createdAt',
+        populate: { path: 'userId', select: 'name' }
+      });
+
+    if (!foundPost) {
+      return res.recordNotFound();
+    }
+
+    // Check if user liked the post
+    let isLiked = false;
+    if (userId) {
+      const like = await Like.findOne({ postId, userId });
+      isLiked = !!like;
+    }
+
+    const postData = foundPost.toJSON();
+    postData.isLiked = isLiked;
+
+    return res.success({
+      data: postData
+    });
+
+  } catch (error) {
+    console.error('getPost error:', error);
+    return res.internalServerError({ message: error.message });
+  }
+};
   
   const getPostCount = async (req,res) => {
     try {

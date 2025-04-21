@@ -35,7 +35,6 @@ const myCustomLabels = {
     }],
     description: {type: String},
     location: {type: String},
-	isLiked:{type:Boolean,default:false},
     likeCount: { type: Number, default: 0 },
     dislikeCount: { type: Number, default: 0 },
       isDeleted: { type: Boolean },
