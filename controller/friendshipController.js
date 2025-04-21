@@ -381,6 +381,47 @@ const getFollowers = async (req, res) => {
     }
 };
 
+const removeFollower = async (req, res) => {
+    try {
+      const { followerId } = req.body;
+  
+      if (!followerId) {
+        return res.badRequest({ message: "followerId is required" });
+      }
+  
+      const currentUserId = req.user.id;
+  
+      // Check if the user exists
+      const user = await User.findById(currentUserId);
+      if (!user) return res.recordNotFound();
+  
+      // Remove followerId from your followers
+      await User.findByIdAndUpdate(currentUserId, {
+        $pull: { followers: followerId }
+      });
+  
+      // Optional: Also remove current user from their following list
+      await User.findByIdAndUpdate(followerId, {
+        $pull: { following: currentUserId }
+      });
+  
+      // Fetch updated user followers list
+      const updatedUser = await User.findById(currentUserId)
+        .populate('followers', 'username name picture')
+        .select('followers')
+        .lean();
+  
+      return res.success({
+        message: "Follower removed successfully",
+        data: updatedUser.followers
+      });
+  
+    } catch (error) {
+      return res.internalServerError({ message: error.message });
+    }
+  };
+  
+
 // Get user's following list
 const getFollowing = async (req, res) => {
     try {
@@ -447,5 +488,6 @@ module.exports = {
     unfollow,
     getFollowers,
     getFollowing,
-    getFollowRequests
+    getFollowRequests,
+    removeFollower
 };
