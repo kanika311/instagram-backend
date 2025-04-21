@@ -5,64 +5,68 @@ const Post = require('../model/post');
 const toggleLike = async (req, res) => {
   try {
     const { postId } = req.body;
-    const userId = req.user.id; // Assuming authenticated user ID
+    const userId = req.user.id;
 
     if (!postId) {
       return res.status(400).json({ success: false, message: "Post ID is required" });
     }
 
-    // Find the post
-    const post = await Post.findById(postId);
-    if (!post) {
-      return res.status(404).json({ success: false, message: "Post not found" });
-    }
-
-    // Check if user already liked/disliked the post
     let existingLike = await Like.findOne({ postId, userId });
 
-    let updatedLikeStatus;
     if (existingLike) {
-      // Toggle like status
-      existingLike.isLike = !existingLike.isLike;
-      await existingLike.save();
-      updatedLikeStatus = existingLike.isLike;
+      // Unlike (delete the like)
+      await existingLike.deleteOne();
 
-      // Update post's like/dislike count accordingly
+      // Decrease like count and set isLiked false
       await Post.findByIdAndUpdate(postId, {
-        $inc: {
-          likeCount: existingLike.isLike ? 1 : -1,
-          dislikeCount: existingLike.isLike ? -1 : 1,
-        },
+        $inc: { likeCount: -1 },
+        isLiked: false
+      });
+
+      const updatedPost = await Post.findById(postId).populate('userId').lean();
+
+      return res.status(200).json({
+        success: true,
+        message: "Post unliked",
+        isLiked: false,
+        like: {
+          postId: updatedPost,
+          userId,
+          isLike: false
+        }
       });
     } else {
-      // Create new like entry
-      existingLike = await Like.create({ postId, userId, isLike: true });
-      updatedLikeStatus = true;
+      // Like the post
+      const newLike = await Like.create({ postId, userId, isLike: true });
 
-      // Increment like count
-      await Post.findByIdAndUpdate(postId, { $inc: { likeCount: 1 } });
+      // Increase like count and set isLiked true
+      await Post.findByIdAndUpdate(postId, {
+        $inc: { likeCount: 1 },
+        isLiked: true
+      });
+
+      const updatedPost = await Post.findById(postId).populate('userId').lean();
+
+      return res.status(200).json({
+        success: true,
+        message: "Post liked",
+        isLiked: true,
+        like: {
+          postId: updatedPost,
+          userId,
+          isLike: true,
+          createdAt: newLike.createdAt,
+          updatedAt: newLike.updatedAt,
+          id: newLike._id
+        }
+      });
     }
 
-    // Update `isLiked` status per user in the Post schema
-    const updatedPost = await Post.findByIdAndUpdate(
-      postId,
-      { isLiked: updatedLikeStatus },
-      { new: true }
-    );
-
-    return res.status(200).json({
-      success: true,
-      data: existingLike,
-      post: updatedPost,
-      message: "Like status updated successfully",
-    });
   } catch (error) {
     console.error("Error in toggleLike:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-
-
 
 
 
