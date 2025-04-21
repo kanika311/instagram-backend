@@ -1,9 +1,9 @@
-const User = require("../model/user");
-const UserSchemaKey = require('../utils/validation/userValidation');
-const validation = require('../utils/validateRequest');
+const User = require("../../model/user");
+const UserSchemaKey = require('../../utils/validation/userValidation');
+const validation = require('../../utils/validateRequest');
 const ObjectId = require('mongodb').ObjectId;
-const dbService = require('../utils/dbServices');
-const { upload, uploadToSpaces } = require('../services/fileUploadServices')
+const dbService = require('../../utils/dbServices');
+const { upload, uploadToSpaces } = require('../../services/fileUploadServices')
 
 
 const findAllUser = async (req,res) => {

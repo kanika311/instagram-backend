@@ -1,5 +1,5 @@
-const Message = require('../model/message');
-const Chat = require('../model/chat');
+const Message = require('../../model/message');
+const Chat = require('../../model/chat');
 const onlineUsers = new Map();
 
 const messageController = {

@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const userController = require("../controller/userController");
-const {PLATFORM} = require("../constants/authConstant");
-const auth = require("../middleware/auth");
+const userController = require("../../controller/user/userController");
+const {PLATFORM} = require("../../constants/authConstant");
+const auth = require("../../middleware/auth");
 
 
 // router.post('/list',auth(PLATFORM.USERAPP), userController.findAllUser);

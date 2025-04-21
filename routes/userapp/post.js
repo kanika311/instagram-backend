@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const postController = require("../controller/postController");
-const likeController = require("../controller/likeController");
-const commentController = require("../controller/commentController");
-const replyController = require("../controller/commentReplyController");
-const { PLATFORM } = require("../constants/authConstant");
-const auth = require("../middleware/auth");
-const storage = require("../middleware/upload");
+const postController = require("../../controller/user/postController");
+const likeController = require("../../controller/user/likeController");
+const commentController = require("../../controller/user/commentController");
+const replyController = require("../../controller/user/commentReplyController");
+const { PLATFORM } = require("../../constants/authConstant");
+const auth = require("../../middleware/auth");
+const storage = require("../../middleware/upload");
 const multer = require("multer");
-const upload = require("../config/doSpace");
+const upload = require("../../config/doSpace");
 
 const uploadStorage = multer({ storage: storage });
 

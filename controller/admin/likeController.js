@@ -1,6 +1,6 @@
 // controllers/like.controller.js
-const Like = require('../model/like');
-const Post = require('../model/post');
+const Like = require('../../model/like');
+const Post = require('../../model/post');
 
 const toggleLike = async (req, res) => {
   try {

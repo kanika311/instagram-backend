@@ -2,12 +2,12 @@ const express = require("express")
 
 const router = express.Router();
 
-router.use('/userapp/auth',require('./auth'))
-router.use('/userapp/post',require('./post'))
-router.use('/userapp/search',require('./search'))
-router.use('/userapp/user',require('./user'))
-router.use('/userapp/friendship',require('./friendship'))
-router.use('/userapp/chat',require('./chat'))
-router.use('/userapp/message',require('./message'))
+router.use('/userapp/auth',require('./userapp/auth'))
+router.use('/userapp/post',require('./userapp/post'))
+router.use('/userapp/search',require('./userapp/search'))
+router.use('/userapp/user',require('./userapp/user'))
+router.use('/userapp/friendship',require('./userapp/friendship'))
+router.use('/userapp/chat',require('./userapp/chat'))
+router.use('/userapp/message',require('./userapp/message'))
 
 module.exports = router;

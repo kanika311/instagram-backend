@@ -1,4 +1,4 @@
-const User = require('../model/user');
+const User = require('../../model/user');
 
 // Send follow request or follow directly
 const create = async (req, res) => {

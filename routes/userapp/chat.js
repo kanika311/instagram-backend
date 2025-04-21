@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const chatController = require('../controller/chatController');
-const auth = require("../middleware/auth");
-const { PLATFORM } = require("../constants/authConstant");
+const chatController = require('../../controller/user/chatController');
+const auth = require("../../middleware/auth");
+const { PLATFORM } = require("../../constants/authConstant");
 
 
 router.post('/',auth(PLATFORM.USERAPP), chatController.createChat);

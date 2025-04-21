@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const friendshipController = require("../controller/friendshipController");
-const {PLATFORM} = require("../constants/authConstant");
-const auth = require("../middleware/auth");
+const friendshipController = require("../../controller/user/friendshipController");
+const {PLATFORM} = require("../../constants/authConstant");
+const auth = require("../../middleware/auth");
 
 
 // router.post('/list',auth(PLATFORM.USERAPP), userController.findAllUser);

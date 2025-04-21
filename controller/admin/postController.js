@@ -1,10 +1,10 @@
-const Post = require("../model/post");
+const Post = require("../../model/post");
 // const PostSchemaKey = require('../utils/validation/PostValidation');
 // const validation = require('../utils/validateRequest');
 const ObjectId = require('mongodb').ObjectId;
-const { upload, uploadToSpaces } = require('../services/fileUploadServices')
-const User = require('../model/user')
-const Like = require('../model/like');
+const { upload, uploadToSpaces } = require('../../services/fileUploadServices')
+const User = require('../../model/user')
+const Like = require('../../model/like');
 
 const create = async (req, res) => {
   try {

@@ -1,6 +1,6 @@
-const Chat = require('../model/chat');
-const Message = require('../model/message');
-const User = require('../model/user');
+const Chat = require('../../model/chat');
+const Message = require('../../model/message');
+const User = require('../../model/user');
 
 const chatController = {
   // Create a new chat (1:1 or group)

@@ -1,11 +1,11 @@
-const User = require("../model/user");
+const User = require("../../model/user");
 const jwt = require("jsonwebtoken");
-const { verifyToken } = require("../firebase/auth");
-const authService = require("../services/auth");
-const authConstant = require("../constants/authConstant");
-const userSchemaKey = require("../utils/validation/userValidation");
-const validation = require("../utils/validateRequest");
-const dbService = require("../utils/dbServices");
+const { verifyToken } = require("../../firebase/auth");
+const authService = require("../../services/auth");
+const authConstant = require("../../constants/authConstant");
+const userSchemaKey = require("../../utils/validation/userValidation");
+const validation = require("../../utils/validateRequest");
+const dbService = require("../../utils/dbServices");
 const dayjs = require("dayjs");
 
 const register = async (req, res) => {
