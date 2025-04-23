@@ -122,6 +122,36 @@ const messageController = {
     }
   },
 
+
+  findAllMessage: async (req, res) => {
+    try {
+      
+      const userId = req.user.id;
+      const { page = 1, limit = 20 } = req.query;
+
+
+      // Get messages with pagination
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sort: { createdAt: -1 },
+        populate: [
+          { path: 'userId', select: 'username name picture' },
+          { path: 'seenBy', select: 'username name picture' }
+        ]
+      };
+
+      const messages = await Message.paginate(
+        {  isDeleted: false },
+        options
+      );
+
+      return res.success({ data: messages });
+    } catch (error) {
+      return res.internalServerError({ message: error.message });
+    }
+  },
+
   // Mark messages as seen
   markAsSeen: async (req, res) => {
     try {

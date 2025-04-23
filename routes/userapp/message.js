@@ -5,6 +5,7 @@ const auth = require("../../middleware/auth");
 const { PLATFORM } = require("../../constants/authConstant");
 
 router.post('/send',auth(PLATFORM.USERAPP), messageController.sendMessage);
+router.post('/list',auth(PLATFORM.USERAPP), messageController.findAllMessage);
 router.get('/get/:chatId',auth(PLATFORM.USERAPP), messageController.getMessages);
 router.post('/mark-seen',auth(PLATFORM.USERAPP), messageController.markAsSeen);
 router.delete('/delete/:messageId',auth(PLATFORM.USERAPP), messageController.deleteMessage);
