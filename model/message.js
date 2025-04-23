@@ -30,6 +30,10 @@ const myCustomLabels = {
       ref: 'chat',
       type: Schema.Types.ObjectId
     } ,
+    receiverId:{
+      ref: 'user',
+      type: Schema.Types.ObjectId
+    },
     seenBy:[{
       ref: 'user',
       type: Schema.Types.ObjectId

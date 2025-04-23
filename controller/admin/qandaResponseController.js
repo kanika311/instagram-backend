@@ -4,20 +4,20 @@
 const dbService = require("../../utils/dbServices");
 const validation = require('../../utils/validateRequest');
 const ObjectId = require('mongodb').ObjectId;
-const Qanda = require('../../model/qanda');
-const QandaSchemaKey = require('../../utils/validation/qandaValidation');
+const QandaResponse = require('../../model/qandaResponse');
+const QandaResponseSchemaKey = require('../../utils/validation/qandaResponseValidation');
  
 
 
 
 
   /**
- * @description : create document of Qanda in mongodb collection.
+ * @description : create document of QandaResponse in mongodb collection.
  * @param {Object} req : request including body for creating document.
  * @param {Object} res : response of created document
- * @return {Object} : created Qanda. {status, message, data}
+ * @return {Object} : created QandaResponse. {status, message, data}
  */ 
-const addQanda = async (req, res) => {
+const addQandaResponse = async (req, res) => {
   try {
  
     let createdBy = req.user.id;
@@ -27,17 +27,17 @@ const addQanda = async (req, res) => {
     let dataToCreate = { ...req.body,createdBy:createdBy.toString() || {} };
     let validateRequest = validation.validateParamsWithJoi(
       dataToCreate,
-      QandaSchemaKey.schemaKeys
+      QandaResponseSchemaKey.schemaKeys
       );
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
 
 
-    dataToCreate = new Qanda(dataToCreate);
-    let createdQanda = await dbService.create(Qanda,dataToCreate);
+    dataToCreate = new QandaResponse(dataToCreate);
+    let createdQandaResponse = await dbService.create(QandaResponse,dataToCreate);
   
-    return res.success({ data : createdQanda });
+    return res.success({ data : createdQandaResponse });
   } catch (error) {
     return res.internalServerError({ message:error.message }); 
   }
@@ -45,12 +45,12 @@ const addQanda = async (req, res) => {
  
 
 /**
- * @description : find document of Qanda from table by id;
+ * @description : find document of QandaResponse from table by id;
  * @param {Object} req : request including id in request params.
  * @param {Object} res : response contains document retrieved from table.
- * @return {Object} : found Qanda. {status, message, data}
+ * @return {Object} : found QandaResponse. {status, message, data}
  */
-const getQanda = async (req,res) => {
+const getQandaResponse = async (req,res) => {
   try {
     if (!req.params.id) {
       return res.badRequest({ message: 'Insufficient request parameters! id is required.' });
@@ -61,11 +61,11 @@ const getQanda = async (req,res) => {
     }
     query._id = req.params.id;
     let options = {};
-    let foundQanda = await dbService.findOne(Qanda,query, options);
-    if (!foundQanda){
+    let foundQandaResponse = await dbService.findOne(QandaResponse,query, options);
+    if (!foundQandaResponse){
       return res.recordNotFound();
     }
-    return res.success({ data :foundQanda });
+    return res.success({ data :foundQandaResponse });
   }
   catch (error){
     return res.internalServerError({ message:error.message });
@@ -73,12 +73,12 @@ const getQanda = async (req,res) => {
 };
 
   /**
- * @description : update document of Qanda with data by id.
+ * @description : update document of QandaResponse with data by id.
  * @param {Object} req : request including id in request params and data in request body.
- * @param {Object} res : response of updated Qanda.
- * @return {Object} : updated Qanda. {status, message, data}
+ * @param {Object} res : response of updated QandaResponse.
+ * @return {Object} : updated QandaResponse. {status, message, data}
  */
-const updateQanda = async (req, res) => {
+const updateQandaResponse = async (req, res) => {
     try {
         if (!req.params.id) {
             return res.badRequest({ message: 'Insufficient request parameters! id is required.' });
@@ -89,29 +89,29 @@ const updateQanda = async (req, res) => {
       let dataToUpdate = { ...req.body };
       let validateRequest = validation.validateParamsWithJoi(
         dataToUpdate,
-        QandaSchemaKey.updateSchemaKeys
+        QandaResponseSchemaKey.updateSchemaKeys
       );
       if (!validateRequest.isValid) {
         return res.validationError({ message: `Invalid values in parameters, ${validateRequest.message}` });
       }
       const query = { _id: req.params.id };
-      let updatedQanda = await dbService.updateOne(Qanda, query, dataToUpdate);
-      if (!updatedQanda) {
+      let updatedQandaResponse = await dbService.updateOne(QandaResponse, query, dataToUpdate);
+      if (!updatedQandaResponse) {
         return res.recordNotFound();
       }
-      return res.success({ data: updatedQanda });
+      return res.success({ data: updatedQandaResponse });
     } catch (error) {
       return res.internalServerError({ message: error.message });
     }
   };
 
   /**
- * @description : deactivate document of Qanda from table by id;
+ * @description : deactivate document of QandaResponse from table by id;
  * @param {Object} req : request including id in request params.
- * @param {Object} res : response contains updated document of Qanda.
- * @return {Object} : deactivated Qanda. {status, message, data}
+ * @param {Object} res : response contains updated document of QandaResponse.
+ * @return {Object} : deactivated QandaResponse. {status, message, data}
  */
-const softDeleteQanda= async (req, res) => {
+const softDeleteQandaResponse= async (req, res) => {
     try {
       if (!req.params.id) {
         return res.badRequest({ message: 'Insufficient request parameters! id is required.' });
@@ -119,33 +119,33 @@ const softDeleteQanda= async (req, res) => {
       
       const query = { _id: req.params.id };
       const updateBody = { isDeleted: true,isActive:false };
-      let updatedQanda = await dbService.updateOne(Qanda, query, updateBody);
-      if (!updatedQanda) {
+      let updatedQandaResponse = await dbService.updateOne(QandaResponse, query, updateBody);
+      if (!updatedQandaResponse) {
         return res.recordNotFound();
       }
-      return res.success({ data: updatedQanda });
+      return res.success({ data: updatedQandaResponse });
     } catch (error) {
       return res.internalServerError({ message: error.message });
     }
   };
 
     /**
- * @description : delete document of Qanda from table.
+ * @description : delete document of QandaResponse from table.
  * @param {Object} req : request including id as req param.
  * @param {Object} res : response contains deleted document.
- * @return {Object} : deleted Qanda. {status, message, data}
+ * @return {Object} : deleted QandaResponse. {status, message, data}
  */
-const deleteQanda = async (req,res) => {
+const deleteQandaResponse = async (req,res) => {
   try { 
     if (!req.params.id){
       return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
     }
     const query = { _id:req.params.id };
-    const deletedQanda = await dbService.deleteOne(Qanda, query);
-    if (!deletedQanda){
+    const deletedQandaResponse = await dbService.deleteOne(QandaResponse, query);
+    if (!deletedQandaResponse){
       return res.recordNotFound();
     }
-    return res.success({ data :deletedQanda });
+    return res.success({ data :deletedQandaResponse });
         
   }
   catch (error){
@@ -154,12 +154,12 @@ const deleteQanda = async (req,res) => {
 };
       
 /**
- * @description : find all documents of Qanda from collection based on query and options.
+ * @description : find all documents of QandaResponse from collection based on query and options.
  * @param {Object} req : request including option and query. {query, options : {page, limit, pagination, populate}, isCountOnly}
  * @param {Object} res : response contains data found from collection.
- * @return {Object} : found Qanda(s). {status, message, data}
+ * @return {Object} : found QandaResponse(s). {status, message, data}
  */
-const findAllQandas = async (req, res) => {
+const findAllQandaResponses = async (req, res) => {
   try {
     let options = {};
     let query = {};
@@ -167,8 +167,8 @@ const findAllQandas = async (req, res) => {
     // Validate request body against Joi schema
     let validateRequest = validation.validateFilterWithJoi(
       req.body,
-      QandaSchemaKey.findFilterKeys,
-      Qanda.schema.obj
+      QandaResponseSchemaKey.findFilterKeys,
+      QandaResponse.schema.obj
     );
 
     if (!validateRequest.isValid) {
@@ -187,7 +187,7 @@ const findAllQandas = async (req, res) => {
 
     // Check if only count is required
     if (req.body.isCountOnly) {
-      let totalRecords = await dbService.count(Qanda, query);
+      let totalRecords = await dbService.count(QandaResponse, query);
       return res.success({ data: { totalRecords } });
     }
 
@@ -196,17 +196,17 @@ const findAllQandas = async (req, res) => {
       options = { ...req.body.options };
     }
 
-    // Fetch paginated Qandas with video population
-    let foundQandas = await dbService.paginate(Qanda, query, {
+    // Fetch paginated QandaResponses with video population
+    let foundQandaResponses = await dbService.paginate(QandaResponse, query, {
       ...options,
      
     });
 
-    if (!foundQandas || !foundQandas.data || !foundQandas.data.length) {
+    if (!foundQandaResponses || !foundQandaResponses.data || !foundQandaResponses.data.length) {
       return res.recordNotFound();
     }
 
-    return res.success({ data: foundQandas });
+    return res.success({ data: foundQandaResponses });
   } catch (error) {
     return res.internalServerError({ message: error.message });
   }
@@ -214,17 +214,17 @@ const findAllQandas = async (req, res) => {
 
    
 /**
- * @description : returns total number of documents of Qanda.
+ * @description : returns total number of documents of QandaResponse.
  * @param {Object} req : request including where object to apply filters in req body 
  * @param {Object} res : response that returns total number of documents.
  * @return {Object} : number of documents. {status, message, data}
  */
-const getQandaCount = async (req,res) => {
+const getQandaResponseCount = async (req,res) => {
   try {
     let where = {};
     let validateRequest = validation.validateFilterWithJoi(
       req.body,
-      QandaSchemaKey.findFilterKeys,
+      QandaResponseSchemaKey.findFilterKeys,
     );
     if (!validateRequest.isValid) {
       return res.validationError({ message: `${validateRequest.message}` });
@@ -232,44 +232,44 @@ const getQandaCount = async (req,res) => {
     if (typeof req.body.where === 'object' && req.body.where !== null) {
       where = { ...req.body.where };
     }
-    let countedQanda = await dbService.count(Qanda,where);
-    return res.success({ data : { count: countedQanda } });
+    let countedQandaResponse = await dbService.count(QandaResponse,where);
+    return res.success({ data : { count: countedQandaResponse } });
   } catch (error){
     return res.internalServerError({ message:error.message });
   }
 };
 
  /**
- * @description : delete documents of Qanda in table by using ids.
+ * @description : delete documents of QandaResponse in table by using ids.
  * @param {Object} req : request including array of ids in request body.
  * @param {Object} res : response contains no of documents deleted.
  * @return {Object} : no of documents deleted. {status, message, data}
  */
- const deleteManyQanda = async (req, res) => {
+ const deleteManyQandaResponse = async (req, res) => {
   try {
     let ids = req.body.ids;
     if (!ids || !Array.isArray(ids) || ids.length < 1) {
       return res.badRequest();
     }
     const query = { _id:{ $in:ids } };
-    const deletedQanda = await dbService.deleteMany(Qanda,query);
-    if (!deletedQanda){
+    const deletedQandaResponse = await dbService.deleteMany(QandaResponse,query);
+    if (!deletedQandaResponse){
       return res.recordNotFound();
     }
-    return res.success({ data :{ count :deletedQanda } });
+    return res.success({ data :{ count :deletedQandaResponse } });
   } catch (error){
     return res.internalServerError({ message:error.message }); 
   }
 };
 
   module.exports = {
-    getQanda,
-    addQanda,
-    updateQanda,
-    deleteQanda,
-    softDeleteQanda,
-    findAllQandas,
-    getQandaCount,
-    deleteManyQanda
+    getQandaResponse,
+    addQandaResponse,
+    updateQandaResponse,
+    deleteQandaResponse,
+    softDeleteQandaResponse,
+    findAllQandaResponses,
+    getQandaResponseCount,
+    deleteManyQandaResponse
 
 }

@@ -8,57 +8,68 @@ const validation = require("../../utils/validateRequest");
 const dbService = require("../../utils/dbServices");
 const dayjs = require("dayjs");
 
-const register = async (req, res) => {
-	try {
-		let { phone, email } = req.body;
-		if (!email && !phone) {
-			return res.badRequest({
-				message:
-					"Insufficient request parameters! email or phone  is required.",
-			});
-		}
+const register = async (req,res) =>{
+    try {
+      let {
+        email,phone, password
+      } = req.body;
+     
+      if (!email && !phone) {
+        return res.badRequest({ message: 'Insufficient request parameters! email or phone  is required.' });
+      }
+      if (!password) {
+        return res.badRequest({ message: 'Insufficient request parameters! password is required.' });
+      }
 
-		// validation
-		let validateRequest = validation.validateParamsWithJoi(
-			req.body,
-			userSchemaKey.schemaKeys
-		);
-		if (!validateRequest.isValid) {
-			return res.validationError({
-				message: `Invalid values in parameters, ${validateRequest.message}`,
-			});
-		}
+      // validation  
+      let validateRequest = validation.validateParamsWithJoi(
+        req.body,
+        userSchemaKey.schemaKeys
+      );
+      if (!validateRequest.isValid) {
+        return res.validationError({ message :  `Invalid values in parameters, ${validateRequest.message}` });
+      } 
+     
+      if(req.body.email){
+        let found = await User.findOne({email:email});
+        if(found){
+            return res.validationError({message : `${email} already exists.Unique email are allowed.`})
+        }
+    }
+    if(req.body.phone){
+        let found = await User.findOne({phone:phone});
+        if(found){
+            return res.validationError({message : `${phone} already exists.Unique phone are allowed.`})
+        }
+    }
+     
+      const data = new User({
+        ...req.body,
+        userType: authConstant.USER_TYPES.Admin
+      });
+     
+      // check data availble in database or not
+    
+      if(req.body.email){
+        let checkUniqueFields = await common.checkUniqueFieldsInDatabase(User,['email'],data,'REGISTER');
+        if (checkUniqueFields.isDuplicate){
+          return res.validationError({ message : `${checkUniqueFields.value} already exists.Unique ${checkUniqueFields.field} are allowed.` });
+        }
+    }
+    if(req.body.phone){
+        let checkUniqueFields = await common.checkUniqueFieldsInDatabase(User,['phone'],data,'REGISTER');
+      if (checkUniqueFields.isDuplicate){
+        return res.validationError({ message : `${checkUniqueFields.value} already exists.Unique ${checkUniqueFields.field} are allowed.` });
+      }
+    }
+    // create user
+      const result = await dbService.create(User,data);
 
-		if (req.body.email) {
-			let found = await User.findOne({ email: email });
-			if (found) {
-				return res.validationError({
-					message: `${email} already exists.Unique email are allowed.`,
-				});
-			}
-		}
-		if (req.body.phone) {
-			let found = await User.findOne({ phone: phone });
-			if (found) {
-				return res.validationError({
-					message: `${phone} already exists.Unique phone are allowed.`,
-				});
-			}
-		}
-
-		const data = new User({
-			...req.body,
-			userType: authConstant.USER_TYPES.User,
-		});
-
-		// create user
-		const result = await dbService.create(User, data);
-
-		return res.success({ data: result });
-	} catch (error) {
-		return res.internalServerError({ data: error.message });
-	}
-};
+      return res.success({ data :result });
+    } catch (error) {
+      return res.internalServerError({ data:error.message });
+    }  
+  };
 
 const login = async (req, res) => {
 	try {

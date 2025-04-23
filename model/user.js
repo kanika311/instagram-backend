@@ -32,6 +32,9 @@ const schema = new Schema(
 		email: {
 			type: String,
 		},
+		bio: {
+			type: String,
+		},
 		dateofbirth: {
 			type: String,
 		},

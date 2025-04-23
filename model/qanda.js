@@ -22,9 +22,9 @@ const Schema = mongoose.Schema;
 const schema = new Schema(
 	{
 		question: {
-			type: String,
+		questionText:{type: String},	
             answer: [{
-                type: String,
+               answerText:{type: String},
             }],	
 		},
 	
@@ -73,9 +73,7 @@ schema.method("toJSON", function () {
 });
 
 schema.plugin(mongoosePaginate);
-schema.plugin(uniqueValidator, {
-    message: "Error, expected {VALUE} to be unique.",
-});
+
 
 
 schema.plugin(mongoosePaginate);

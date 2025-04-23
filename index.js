@@ -13,6 +13,7 @@ const setupSocket = require('./config/socket');
 dotenv.config({ path: '.env' });
 
 const dbConnection = require('./config/db');
+const { adminPassportStrategy } = require('./config/adminPassportStrategy');
 dbConnection();
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(routes);
 
 userappPassportStrategy(passport);
+adminPassportStrategy(passport);
 
 server.listen(port, () => {
   console.log(`Server running on port ${port}`);

@@ -48,6 +48,7 @@ module.exports = (io) => {
       // **Handle Sending Messages**
       socket.on("chat message", async ({ senderId, message, receiverId, chatId }) => {
         try {
+          console.log(onlineUsers,'sender id ')
           let sender = onlineUsers.get(senderId);
           console.log("sender", sender)
           if (!sender) return;
@@ -75,6 +76,7 @@ module.exports = (io) => {
             // Save Message
             const newMessage = await Message.create({
               userId: senderId,
+              receiverId:receiverId,
               chatId: chat._id,
               message,
             });
