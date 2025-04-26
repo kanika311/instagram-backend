@@ -137,7 +137,8 @@ const messageController = {
         sort: { createdAt: -1 },
         populate: [
           { path: 'userId', select: 'username name picture' },
-          { path: 'seenBy', select: 'username name picture' }
+          { path: 'seenBy', select: 'username name picture' },
+          { path: 'receiverId', select: 'username name picture' }
         ]
       };
 
