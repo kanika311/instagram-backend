@@ -1,6 +1,8 @@
 const Message = require('../../model/message');
 const Chat = require('../../model/chat');
+const User = require('../../model/user');
 const onlineUsers = new Map();
+const mongoose = require('mongoose');
 
 const messageController = {
   // Send a message
@@ -54,12 +56,14 @@ const messageController = {
       const newMessage = await Message.create({
         userId: senderId,
         chatId,
+        receiverId: isGroup ? null : receiverId,
         message,
         seenBy: [senderId], // Sender has seen their own message
       });
   
-      // **Update Chat's Last Message**
+      // **Update Chat's Last Message and add message to messages array**
       await Chat.findByIdAndUpdate(chatId, {
+        $push: { messages: newMessage._id },
         lastMessage: newMessage._id,
         updatedAt: new Date(),
       });
@@ -217,7 +221,92 @@ const messageController = {
     } catch (error) {
       return res.internalServerError({ message: error.message });
     }
-  }
+  },
+
+  // Get chat list (users with whom current user has had conversations)
+  getChatList: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Find all messages where user is either sender or receiver
+      const messages = await Message.aggregate([
+        {
+          $match: {
+            $or: [
+              { userId: mongoose.Types.ObjectId(userId) },
+              { receiverId: mongoose.Types.ObjectId(userId) }
+            ],
+            isDeleted: false
+          }
+        },
+        {
+          $sort: { createdAt: -1 }
+        },
+        {
+          $group: {
+            _id: "$chatId",
+            lastMessage: { $first: "$$ROOT" },
+            chatId: { $first: "$chatId" }
+          }
+        },
+        {
+          $lookup: {
+            from: "chats",
+            localField: "chatId",
+            foreignField: "_id",
+            as: "chat"
+          }
+        },
+        {
+          $unwind: "$chat"
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "chat.users",
+            foreignField: "_id",
+            as: "users"
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            chatId: "$chatId",
+            lastMessage: {
+              message: "$lastMessage.message",
+              createdAt: "$lastMessage.createdAt",
+              userId: "$lastMessage.userId"
+            },
+            users: {
+              $filter: {
+                input: "$users",
+                as: "user",
+                cond: { $ne: ["$$user._id", mongoose.Types.ObjectId(userId)] }
+              }
+            },
+            isGroup: "$chat.isGroup",
+            updatedAt: "$chat.updatedAt"
+          }
+        }
+      ]);
+
+      // Format the response
+      const formattedChats = messages.map(chat => {
+        const otherUser = chat.users[0]; // For 1:1 chats, there will be only one other user
+        return {
+          chatId: chat.chatId,
+          user: otherUser,
+          lastMessage: chat.lastMessage,
+          isGroup: chat.isGroup,
+          updatedAt: chat.updatedAt
+        };
+      });
+
+      return res.success({ data: formattedChats });
+    } catch (error) {
+      return res.internalServerError({ message: error.message });
+    }
+  },
 };
 
 module.exports = messageController;

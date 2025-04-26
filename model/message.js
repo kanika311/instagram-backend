@@ -24,11 +24,13 @@ const myCustomLabels = {
   const schema = new Schema({ 
     userId: {
       ref: 'user',
-      type: Schema.Types.ObjectId
+      type: Schema.Types.ObjectId,
+      required: true
     } ,
     chatId: {
       ref: 'chat',
-      type: Schema.Types.ObjectId
+      type: Schema.Types.ObjectId,
+      required: true
     } ,
     receiverId:{
       ref: 'user',
@@ -38,7 +40,10 @@ const myCustomLabels = {
       ref: 'user',
       type: Schema.Types.ObjectId
     }],
-    message: String,
+    message: {
+      type: String,
+      required: true
+    },
     attachments: [{
       fieldname: String,
       originalname: String,
@@ -51,7 +56,7 @@ const myCustomLabels = {
     }],
     createdAt: { type: Date },
     updatedAt: { type: Date },
-    isDeleted: { type: Boolean},
+    isDeleted: { type: Boolean, default: false },
   },
       {
         timestamps: {
@@ -59,8 +64,20 @@ const myCustomLabels = {
           updatedAt: 'updatedAt'
         }
       }
-
   );
+
+  // Middleware to update chat's lastMessage when a new message is created
+  schema.post('save', async function(doc) {
+    try {
+      const Chat = mongoose.model('chat');
+      await Chat.findByIdAndUpdate(doc.chatId, {
+        lastMessage: doc._id,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating chat lastMessage:', error);
+    }
+  });
 
   schema.pre('save', async function (next) {
     this.isDeleted = false;
